@@ -31,6 +31,7 @@ To use GridMind, you’ll need:
    cd GridMind
    pip install .
 
+2. **Basic Usage**:  
 ```python
 from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
 import gymnasium as gym
