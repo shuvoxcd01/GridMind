@@ -95,3 +95,14 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
 
     def get_state_action_values(self):
         return self.q_values
+
+    def set_policy(self, policy: BasePolicy, _type: str):
+        assert _type.lower() in [
+            "target",
+            "behavior",
+        ], f"For {self.name} '_type' must be either 'target' or 'behavior'"
+
+        if _type.lower() == "target":
+            self.target_policy = policy
+        else:
+            self.behavior_policy = policy

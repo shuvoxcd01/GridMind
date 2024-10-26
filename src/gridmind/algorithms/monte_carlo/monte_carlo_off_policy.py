@@ -5,11 +5,12 @@ from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episo
 from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
 from gridmind.policies.base_policy import BasePolicy
 from gridmind.policies.random_policy import RandomPolicy
-from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import StochasticStartEpsilonGreedyPolicy
+from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import (
+    StochasticStartEpsilonGreedyPolicy,
+)
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
-
 
 
 class MonteCarloOffPolicy(BaseLearningAlgorithm):
@@ -102,3 +103,14 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
 
     def get_state_action_values(self):
         return self.q_values
+
+    def set_policy(self, policy: BasePolicy, _type: str):
+        assert _type.lower() in [
+            "target",
+            "behavior",
+        ], f"For {self.name} '_type' must be either 'target' or 'behavior'"
+
+        if _type.lower() == "target":
+            self.target_policy = policy
+        else:
+            self.behavior_policy = policy

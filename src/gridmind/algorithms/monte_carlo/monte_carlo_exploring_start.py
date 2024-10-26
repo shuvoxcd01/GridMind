@@ -3,12 +3,13 @@ from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
 from gridmind.policies.base_policy import BasePolicy
-from gridmind.policies.greedy.stochastic_start_greedy_policy import StochasticStartGreedyPolicy
+from gridmind.policies.greedy.stochastic_start_greedy_policy import (
+    StochasticStartGreedyPolicy,
+)
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
 import random
-
 
 
 class MonteCarloES(BaseLearningAlgorithm):
@@ -78,3 +79,6 @@ class MonteCarloES(BaseLearningAlgorithm):
 
     def get_state_action_values(self):
         return self.q_values
+
+    def set_policy(self, policy: BasePolicy):
+        self.policy = policy

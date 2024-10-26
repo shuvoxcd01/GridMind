@@ -59,3 +59,10 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         raise Exception(
             f"{self.name} computes only the state values. Use get_state_values() method to get state values."
         )
+
+    def set_policy(self, policy: BasePolicy, **kwargs):
+        raise NotImplementedError
+
+
+
+

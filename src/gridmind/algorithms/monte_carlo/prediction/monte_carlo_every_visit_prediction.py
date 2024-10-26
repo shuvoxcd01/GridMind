@@ -1,8 +1,8 @@
 from collections import defaultdict
-from mc_suite.core.base_learning_algorithm import BaseLearningAlgorithm
-from mc_suite.core.util.episode_collector import collect_episode
-from mc_suite.core.util.trajectory import Trajectory
-from mc_suite.policies.base_policy import BasePolicy
+from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
+from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episode
+from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+from gridmind.policies.base_policy import BasePolicy
 from gymnasium import Env
 from tqdm import tqdm
 import numpy as np
@@ -52,3 +52,10 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
         raise Exception(
             f"{self.name} computes only the state values. Use get_state_values() method to get state values."
         )
+
+    def set_policy(self, policy: BasePolicy, **kwargs):
+        raise NotImplementedError
+
+
+  
+
