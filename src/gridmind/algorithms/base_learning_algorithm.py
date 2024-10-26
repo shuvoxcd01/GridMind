@@ -1,22 +1,31 @@
 from abc import ABC, abstractmethod
 import os
+from typing import Optional
 import dill
+from gridmind.policies.base_policy import BasePolicy
+from tabulate import tabulate
+import logging
 
 
 class BaseLearningAlgorithm(ABC):
-    def __init__(self, name:str) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
     def get_state_values(self):
         raise NotImplementedError("This method must be overridden")
-    
+
     @abstractmethod
     def get_state_action_values(self):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
     def get_policy(self):
+        raise NotImplementedError("This method must be overridden")
+
+    @abstractmethod
+    def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
