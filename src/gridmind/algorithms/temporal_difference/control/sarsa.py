@@ -1,8 +1,10 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.base_q_derived_policy import BaseQDerivedPolicy
-from gridmind.policies.soft.q_derived_epsilon_greedy_policy import QDerivedEpsilonGreedyPolicy
+from gridmind.policies.soft.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
+from gridmind.policies.soft.q_derived_epsilon_greedy_policy import (
+    QDerivedEpsilonGreedyPolicy,
+)
 from gymnasium import Env
 import numpy as np
 
@@ -10,11 +12,29 @@ from tqdm import tqdm
 
 
 class SARSA(BaseLearningAlgorithm):
-    def __init__(self, env: Env, policy: Optional[BaseQDerivedPolicy] = None) -> None:
+    def __init__(
+        self,
+        env: Env,
+        policy: Optional[BaseQDerivedSoftPolicy] = None,
+        step_size: float = 0.5,
+        discount_factor: float = 0.9,
+        q_initializer: str = "zero",
+        epsilon_decay: bool = False,
+    ) -> None:
         super().__init__("SARSA")
         self.env = env
         self.num_actions = self.env.action_space.n
-        self.q_values = defaultdict(lambda: np.zeros(self.num_actions))
+
+        assert q_initializer in [
+            "zero",
+            "random",
+        ], "q_initializer may only take the value 'zero' or 'random'"
+
+        if q_initializer == "zero":
+            self.q_values = defaultdict(lambda: np.zeros(self.num_actions))
+        else:
+            self.q_values = defaultdict(lambda: np.random.rand(self.num_actions))
+
         self.policy = (
             policy
             if policy is not None
@@ -22,8 +42,10 @@ class SARSA(BaseLearningAlgorithm):
                 q_table=self.q_values, num_actions=self.num_actions
             )
         )
-        self.alpha = 0.5
-        self.gamma = 0.9
+
+        self.alpha = step_size
+        self.gamma = discount_factor
+        self.epsilon_decay = epsilon_decay
 
     def get_state_values(self):
         raise Exception(
@@ -55,9 +77,15 @@ class SARSA(BaseLearningAlgorithm):
                     - self.q_values[obs][action]
                 )
                 self.policy.update_q(
-                    state=obs, action=action, value=self.q_values[obs] [action]
+                    state=obs, action=action, value=self.q_values[obs][action]
                 )
                 obs = next_obs
                 action = next_action
 
                 done = terminated or truncated
+
+            if self.epsilon_decay:
+                self.policy.decay_epsilon()
+
+    def set_policy(self, policy: BaseQDerivedSoftPolicy):
+        self.policy = policy
