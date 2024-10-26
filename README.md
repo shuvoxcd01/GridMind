@@ -1,6 +1,8 @@
 # GridMind 🧠
 
-**GridMind** is a library of reinforcement learning (RL) algorithms, designed as a companion for readers of the book *Reinforcement Learning: An Introduction (2nd ed.)* by Richard S. Sutton and Andrew G. Barto. This library prioritizes **tabular implementations** to enhance understanding and facilitate hands-on experimentation with learning patterns in various RL algorithms. GridMind is compatible with **`gymnasium` environments**, making it easy to integrate with a wide range of standard RL environments.
+**GridMind** is a library of reinforcement learning (RL) algorithms. This library prioritizes **tabular implementations** to enhance understanding and facilitate hands-on experimentation with learning patterns in various RL algorithms. GridMind is compatible with **`gymnasium` environments**, making it easy to integrate with a wide range of standard RL environments.
+
+This library is also designed to serve as a companion for readers of the book *Reinforcement Learning: An Introduction (2nd ed.)* by Richard S. Sutton and Andrew G. Barto.
 
 > **Note**: GridMind is a work in progress and will be updated with additional algorithms and features over time.
 
@@ -30,6 +32,10 @@ To use GridMind, you’ll need:
     git clone https://github.com/shuvoxcd01/GridMind.git
     cd GridMind
     pip install .
+    ```
+Or, install it from **PyPI**:
+    ```bash
+    pip install gridmind
     ```
 
 2. **Basic Usage**:  
