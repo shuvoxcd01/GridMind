@@ -3,7 +3,7 @@ import random
 from typing import Optional
 from gymnasium.spaces.space import Space
 
-from gridmind.policies.base_soft_policy import BaseSoftPolicy
+from gridmind.policies.soft.base_soft_policy import BaseSoftPolicy
 
 
 
