@@ -4,8 +4,6 @@ from gridmind.policies.base_policy import BasePolicy
 import gymnasium as gym
 
 
-
-
 class TD0Prediction(BaseLearningAlgorithm):
     """
     Tabular TD(0) for estimating V_pi.
@@ -33,7 +31,7 @@ class TD0Prediction(BaseLearningAlgorithm):
     def get_policy(self):
         return self.policy
 
-    def train(self, num_episodes: int, prediction_only: bool):
+    def train(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 
@@ -51,3 +49,10 @@ class TD0Prediction(BaseLearningAlgorithm):
                 done = terminated or truncated
 
         return self.V
+
+    def set_policy(self, policy: BasePolicy, **kwargs):
+        raise NotImplementedError
+
+
+
+
