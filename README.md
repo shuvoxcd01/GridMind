@@ -33,11 +33,11 @@ To use GridMind, you’ll need:
     cd GridMind
     pip install .
     ```
-Or, install it from **PyPI**:
+    Or, install it from **PyPI**:
     ```bash
     pip install gridmind
     ```
-
+    
 2. **Basic Usage**:  
     ```python
     from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
