@@ -30,6 +30,7 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     def train(self, num_episodes: int, prediction_only: bool):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
+        
         trajectory = Trajectory()
         returns = defaultdict(list)
 
