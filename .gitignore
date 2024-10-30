@@ -167,3 +167,7 @@ cython_debug/
 
 #Exploratory Tests
 exploratory_tests/*
+#Data
+data/*
+#Image files
+*.png
