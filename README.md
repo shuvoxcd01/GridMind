@@ -22,6 +22,10 @@ This library is also designed to serve as a companion for readers of the book *R
    - **SARSA**: *Control*
    - **Q-Learning**: *Control*
 
+### 3. N-Step Methods
+   - **N_Step TD Prediction**: *Prediction*
+   -**N_Step SARSA**: *Control*
+
 ---
 
 ## Getting Started 🚀
