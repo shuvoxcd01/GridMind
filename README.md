@@ -24,7 +24,7 @@ This library is also designed to serve as a companion for readers of the book *R
 
 ### 3. N-Step Methods
    - **N_Step TD Prediction**: *Prediction*
-   -**N_Step SARSA**: *Control*
+   - **N_Step SARSA**: *Control*
 
 ---
 
