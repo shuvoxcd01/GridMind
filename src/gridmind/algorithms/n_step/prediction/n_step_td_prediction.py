@@ -15,7 +15,7 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         env: Env,
         policy: BasePolicy,
         n: int,
-        alpha: float = 0.1,
+        alpha: float = 0.01,
         gamma: float = 0.9,
     ) -> None:
         super().__init__("N-Step-TD-Prediction")
