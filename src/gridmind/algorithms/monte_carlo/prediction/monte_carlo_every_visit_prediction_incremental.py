@@ -17,10 +17,10 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         self,
         env: Env,
         policy: BasePolicy,
-        step_size: float = 0.1,
+        step_size: float = 0.01,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__(name="MCEveryVisitPrediction")
+        super().__init__(name="MCEveryVisitPredictionIncremental")
 
         self.env = env
         self.policy = policy
@@ -36,7 +36,6 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
             raise Exception("This is a prediction/evaluation only implementation.")
 
         trajectory = Trajectory()
-        returns = defaultdict(float)
 
         for i in tqdm(range(num_episodes)):
             collect_episode(env=self.env, policy=self.policy, trajectory=trajectory)
@@ -47,9 +46,8 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
                 state, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
 
-                returns[state] = discounted_return
                 self.V[state] = self.V[state] + self.step_size * (
-                    returns[state] - self.V[state]
+                    discounted_return - self.V[state]
                 )
 
     def get_state_values(self):
