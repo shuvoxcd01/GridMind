@@ -171,3 +171,17 @@ exploratory_tests/*
 data/*
 #Image files
 *.png
+.DS_Store
+cliffwalking_qtable_nstep_sarsa.txt
+cliffwalking_qtable_q_learning.txt
+cliffwalking_qtable_sarsa.txt
+cliffwalking_qtable.txt
+taxi_qtable_mc_off_policy.txt
+taxi_qtable_n_step_sarsa.txt
+taxi_qtable_q_learning.txt
+taxi_qtable_sarsa.txt
+example_usage/.DS_Store
+example_usage/prediction/.DS_Store
+notebooks/test1.ipynb
+notebooks/test2.ipynb
+notebooks/test3.ipynb
