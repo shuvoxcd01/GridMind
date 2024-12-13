@@ -16,12 +16,12 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
         env: gym.Env,
         policy: BasePolicy,
         value_estimator: Optional[NNValueEstimator] = None,
-        alpha: float = 0.1,
+        step_size: float = 0.1,
         gamma: float = 0.9,
         feature_constructor: Callable = None,
     ) -> None:
         super().__init__(name="Semi-gradient-TD-0-Prediction")
-        self.alpha = alpha
+        self.step_size = step_size
         self.env = env
         self.policy = policy
         self.gamma = gamma
@@ -89,7 +89,7 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
                 )
                 value_pred = self.V(_input)
 
-                delta = self.alpha * (target_value - value_pred)
+                delta = self.step_size * (target_value - value_pred)
 
                 grads = torch.autograd.grad(value_pred, self.V.parameters())
 

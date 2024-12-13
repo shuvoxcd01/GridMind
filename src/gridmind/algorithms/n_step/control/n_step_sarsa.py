@@ -47,7 +47,7 @@ class NStepSARSA(BaseLearningAlgorithm):
             )
         )
 
-        self.alpha = step_size
+        self.step_size = step_size
         self.gamma = discount_factor
         self.epsilon_decay = epsilon_decay
 
@@ -121,7 +121,7 @@ class NStepSARSA(BaseLearningAlgorithm):
                     )
                     self.q_values[state_to_update][action_to_update] = self.q_values[
                         state_to_update
-                    ][action_to_update] + self.alpha * (
+                    ][action_to_update] + self.step_size * (
                         _return - self.q_values[state_to_update][action_to_update]
                     )
                     self.policy.update_q(
