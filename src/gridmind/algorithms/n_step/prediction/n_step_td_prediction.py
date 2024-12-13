@@ -15,15 +15,15 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         env: Env,
         policy: BasePolicy,
         n: int,
-        alpha: float = 0.1,
-        gamma: float = 0.9,
+        step_size: float = 0.01,
+        discount_factor: float = 0.9,
     ) -> None:
         super().__init__("N-Step-TD-Prediction")
-        self.alpha = alpha
+        self.step_size = step_size
         self.V = defaultdict(int)
         self.env = env
         self.policy = policy
-        self.gamma = gamma
+        self.discount_factor = discount_factor
         self.n = n
 
     def get_state_values(self):
@@ -74,15 +74,15 @@ class NStepTDPrediction(BaseLearningAlgorithm):
                     _return = 0
                     for i in range(tau + 1, min(tau + self.n, T) + 1):
                         _return += (
-                            self.gamma ** (i - tau - 1)
+                            self.discount_factor ** (i - tau - 1)
                         ) * trajectory.get_reward(timestep=i)
 
                     if tau + self.n < T:
                         _s = trajectory.get_state(timestep=tau + self.n)
-                        _return += (self.gamma**self.n) * self.V[_s]
+                        _return += (self.discount_factor**self.n) * self.V[_s]
 
                     state_to_update = trajectory.get_state(timestep=tau)
-                    self.V[state_to_update] = self.V[state_to_update] + self.alpha * (
+                    self.V[state_to_update] = self.V[state_to_update] + self.step_size * (
                         _return - self.V[state_to_update]
                     )
 

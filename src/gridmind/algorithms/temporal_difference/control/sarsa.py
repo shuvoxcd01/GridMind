@@ -43,8 +43,8 @@ class SARSA(BaseLearningAlgorithm):
             )
         )
 
-        self.alpha = step_size
-        self.gamma = discount_factor
+        self.step_size = step_size
+        self.discount_factor = discount_factor
         self.epsilon_decay = epsilon_decay
 
     def get_state_values(self):
@@ -71,9 +71,9 @@ class SARSA(BaseLearningAlgorithm):
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
                 next_action = self.policy.get_action(next_obs)
 
-                self.q_values[obs][action] = self.q_values[obs][action] + self.alpha * (
+                self.q_values[obs][action] = self.q_values[obs][action] + self.step_size * (
                     reward
-                    + self.gamma * self.q_values[next_obs][next_action]
+                    + self.discount_factor * self.q_values[next_obs][next_action]
                     - self.q_values[obs][action]
                 )
                 self.policy.update_q(

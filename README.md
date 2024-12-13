@@ -9,6 +9,10 @@ This library is also designed to serve as a companion for readers of the book *R
 > **Note**: GridMind is a work in progress and will be updated with additional algorithms and features over time.
 
 ---
+<div align="left">
+<table style="margin: auto;">
+<tr>
+<td style="vertical-align: top; padding-right: 10px;">
 
 ## 📜 Algorithms Included
 
@@ -25,6 +29,21 @@ This library is also designed to serve as a companion for readers of the book *R
 ### 3. N-Step Methods
    - **N_Step TD Prediction**: *Prediction*
    - **N_Step SARSA**: *Control*
+
+### 4. Function Approximation
+   - **Semi-gradient TD-0 Prediction**: *Prediction*
+   - **Gradient Monte-Carlo Prediction**: *Prediction*
+     
+
+</td>
+<td style="vertical-align: top;">
+<img src="example_usage/demo.gif" alt="Demo" width="300">
+   
+*Figure: GridMind on different environments.* 
+</td>
+</tr>
+</table>
+</div>
 
 ---
 
