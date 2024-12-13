@@ -45,7 +45,7 @@ class QLearning(BaseLearningAlgorithm):
             )
         )
         self.step_size = step_size
-        self.gamma = discount_factor
+        self.discount_factor = discount_factor
 
     def get_state_values(self):
         raise Exception(
@@ -72,7 +72,7 @@ class QLearning(BaseLearningAlgorithm):
 
                 self.q_values[obs][action] = self.q_values[obs][action] + self.step_size * (
                     reward
-                    + self.gamma * np.max(self.q_values[next_obs])
+                    + self.discount_factor * np.max(self.q_values[next_obs])
                     - self.q_values[obs][action]
                 )
                 self.policy.update_q(

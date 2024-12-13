@@ -17,14 +17,14 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
         policy: BasePolicy,
         value_estimator: Optional[NNValueEstimator] = None,
         step_size: float = 0.1,
-        gamma: float = 0.9,
+        discount_factor: float = 0.9,
         feature_constructor: Callable = None,
     ) -> None:
         super().__init__(name="Semi-gradient-TD-0-Prediction")
         self.step_size = step_size
         self.env = env
         self.policy = policy
-        self.gamma = gamma
+        self.discount_factor = discount_factor
 
         self.feature_constructor = feature_constructor
         observation_shape = (
@@ -83,7 +83,7 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
                     _next_input = self._preprocess(_next_input)
 
                 target_value = (
-                    reward + self.gamma * self.V(_next_input)
+                    reward + self.discount_factor * self.V(_next_input)
                     if not terminated
                     else reward
                 )

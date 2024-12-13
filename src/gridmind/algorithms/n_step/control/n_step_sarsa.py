@@ -48,7 +48,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         )
 
         self.step_size = step_size
-        self.gamma = discount_factor
+        self.discount_factor = discount_factor
         self.epsilon_decay = epsilon_decay
 
     def get_state_values(self):
@@ -109,12 +109,12 @@ class NStepSARSA(BaseLearningAlgorithm):
                     _return = 0
                     for i in range(tau + 1, min(tau + self.n, T) + 1):
                         _return += (
-                            self.gamma ** (i - tau - 1)
+                            self.discount_factor ** (i - tau - 1)
                         ) * trajectory.get_reward(timestep=i)
 
                     if tau + self.n < T:
                         _s, _a = trajectory.get_state_action(timestep=tau + self.n)
-                        _return += (self.gamma**self.n) * self.q_values[_s][_a]
+                        _return += (self.discount_factor**self.n) * self.q_values[_s][_a]
 
                     state_to_update, action_to_update = trajectory.get_state_action(
                         timestep=tau

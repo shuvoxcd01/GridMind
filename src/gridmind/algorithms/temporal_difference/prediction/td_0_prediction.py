@@ -11,14 +11,14 @@ class TD0Prediction(BaseLearningAlgorithm):
     """
 
     def __init__(
-        self, env: gym.Env, policy: BasePolicy, step_size: float = 0.1, gamma: float = 0.9
+        self, env: gym.Env, policy: BasePolicy, step_size: float = 0.1, discount_factor: float = 0.9
     ) -> None:
         super().__init__(name="TD-0-Prediction")
         self.step_size = step_size
         self.V = defaultdict(int)
         self.env = env
         self.policy = policy
-        self.gamma = gamma
+        self.discount_factor = discount_factor
 
     def get_state_values(self):
         return self.V
@@ -43,7 +43,7 @@ class TD0Prediction(BaseLearningAlgorithm):
                 action = self.policy.get_action(obs)
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
                 self.V[obs] = self.V[obs] + self.step_size * (
-                    reward + self.gamma * self.V[next_obs] - self.V[obs]
+                    reward + self.discount_factor * self.V[next_obs] - self.V[obs]
                 )
                 obs = next_obs
                 done = terminated or truncated
