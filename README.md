@@ -26,6 +26,10 @@ This library is also designed to serve as a companion for readers of the book *R
    - **N_Step TD Prediction**: *Prediction*
    - **N_Step SARSA**: *Control*
 
+### 4. Function Approximation
+   - **Semi-gradient TD-0 Prediction**: *Prediction*
+   - **Gradient Monte-Carlo Prediction**: *Prediction*
+
 ---
 
 ## Getting Started 🚀
