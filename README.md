@@ -9,6 +9,9 @@ This library is also designed to serve as a companion for readers of the book *R
 > **Note**: GridMind is a work in progress and will be updated with additional algorithms and features over time.
 
 ---
+<table>
+<tr>
+<td>
 
 ## 📜 Algorithms Included
 
@@ -29,6 +32,13 @@ This library is also designed to serve as a companion for readers of the book *R
 ### 4. Function Approximation
    - **Semi-gradient TD-0 Prediction**: *Prediction*
    - **Gradient Monte-Carlo Prediction**: *Prediction*
+
+</td>
+<td>
+![Demo](example_usage/demo.gif)
+</td>
+</tr>
+</table>
 
 ---
 
