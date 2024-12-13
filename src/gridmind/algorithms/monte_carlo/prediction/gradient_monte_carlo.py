@@ -10,7 +10,7 @@ import torch
 from tqdm import tqdm
 from torchinfo import summary
 import torch.nn.functional as F
-
+import numbers
 
 class GradientMonteCarlo(BaseLearningAlgorithm):
 
@@ -74,6 +74,9 @@ class GradientMonteCarlo(BaseLearningAlgorithm):
 
                 if self.feature_constructor is not None:
                     state = self.feature_constructor(state)
+
+                if isinstance(state, numbers.Number):
+                    state = torch.tensor(state).unsqueeze(0)
 
                 state = torch.tensor(state, dtype=torch.float32)
                 value_pred = self.V(state)
