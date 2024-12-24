@@ -1,12 +1,12 @@
-import random
 from typing import Dict, Optional
+from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
+    BaseQDerivedSoftPolicy,
+)
 from gymnasium import Space
 import numpy as np
 
-from gridmind.policies.soft.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
 
-
-class QDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
+class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def __init__(
         self,
         q_table: Dict,
@@ -17,7 +17,7 @@ class QDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         epsilon_min: float = 0.001,
         decay_rate: float = 0.01,
     ) -> None:
-        super().__init__(q_table=q_table, epsilon=epsilon)
+        super().__init__(Q=q_table, epsilon=epsilon)
         self.num_actions = num_actions
         self.action_space = action_space
         self.allow_decay = allow_decay
@@ -31,45 +31,21 @@ class QDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
             else True
         ), "Provided num_actions does not match with number of actions in the provided action_space."
 
-    def _get_random_action(self):
-        if self.action_space:
-            random_action = self.action_space.sample()
-            return random_action
+    def update(self, state, action):
+        raise Exception(
+            "This policy is derived from q_table. Instead of directly updating the action to take in a state, please update the state-action value. Use update_q method instead."
+        )
 
-        random_action = random.randint(0, self.num_actions - 1)
-        return random_action
-
-    def get_action(self, state):
-        if random.random() <= self.epsilon:
-            action = self._get_random_action()
-        else:
-            action = self._get_greedy_action(state)
-
-        return action
+    def update_q(self, state, action, value: float):
+        self.Q[state][action] = value
 
     def _get_greedy_action(self, state):
-        action = np.argmax(self.q_table[state])
+        action = np.argmax(self.Q[state])
 
         assert (
             action in self.action_space if self.action_space is not None else True
         ), "Action not in action space!!"
 
-        return action
-
-    def get_action_probs(self, state, action):
-        greedy_action = self._get_greedy_action(state)
-
-        each_random_action_prob = self.epsilon / self.num_actions
-        greedy_action_prob = 1.0 - self.epsilon + each_random_action_prob
-
-        action_probs = (
-            greedy_action_prob if action == greedy_action else each_random_action_prob
-        )
-
-        return action_probs
-
-    def get_action_deterministic(self, state):
-        action = self._get_greedy_action(state=state)
         return action
 
     def set_epsilon(self, value: float):
@@ -85,7 +61,7 @@ class QDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         if not self.allow_decay:
             self.logger.warning("Epsilon decay is not allowed.")
             return
-        
+
         decayed_epsilon = self.epsilon - self.decay_rate
 
         if decayed_epsilon >= self.epsilon_min:
