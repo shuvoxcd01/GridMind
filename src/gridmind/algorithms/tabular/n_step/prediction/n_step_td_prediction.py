@@ -1,9 +1,9 @@
 from collections import defaultdict
 import itertools
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episode
-from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+
 from gridmind.policies.base_policy import BasePolicy
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
@@ -61,7 +61,7 @@ class NStepTDPrediction(BaseLearningAlgorithm):
                     trajectory.update_step(
                         state=next_obs, action=None, reward=None, timestep=t + 1
                     )
-                    
+
                     done = terminated or truncated
                     if done:
                         T = t + 1
@@ -82,9 +82,9 @@ class NStepTDPrediction(BaseLearningAlgorithm):
                         _return += (self.discount_factor**self.n) * self.V[_s]
 
                     state_to_update = trajectory.get_state(timestep=tau)
-                    self.V[state_to_update] = self.V[state_to_update] + self.step_size * (
-                        _return - self.V[state_to_update]
-                    )
+                    self.V[state_to_update] = self.V[
+                        state_to_update
+                    ] + self.step_size * (_return - self.V[state_to_update])
 
                 if tau == T - 1:
                     break

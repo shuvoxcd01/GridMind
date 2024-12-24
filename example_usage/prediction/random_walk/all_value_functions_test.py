@@ -1,16 +1,9 @@
-from gridmind.algorithms.monte_carlo.prediction.gradient_monte_carlo import (
-    GradientMonteCarlo,
-)
-from gridmind.algorithms.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
-    MonteCarloEveryVisitPrediction,
-)
-from gridmind.algorithms.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import (
-    MonteCarloEveryVisitPredictionIncremental,
-)
-from gridmind.algorithms.n_step.prediction.n_step_td_prediction import NStepTDPrediction
-from gridmind.algorithms.temporal_difference.prediction.td_0_prediction import (
-    TD0Prediction,
-)
+
+from gridmind.algorithms.approximation.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
+from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import MonteCarloEveryVisitPrediction
+from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import MonteCarloEveryVisitPredictionIncremental
+from gridmind.algorithms.tabular.n_step.prediction.n_step_td_prediction import NStepTDPrediction
+from gridmind.algorithms.tabular.temporal_difference.prediction.td_0_prediction import TD0Prediction
 from gridmind.feature_construction.one_hot import OneHotFeatureConstructor
 from gridmind.policies.random_policy import RandomPolicy
 import gymnasium as gym
@@ -24,7 +17,7 @@ feature_constructor = OneHotFeatureConstructor(num_classes=5)
 all_estimated_values = []
 
 
-algorithm = GradientMonteCarlo(
+algorithm = GradientMonteCarloPrediction(
     env=env,
     policy=policy,
     step_size=0.001,

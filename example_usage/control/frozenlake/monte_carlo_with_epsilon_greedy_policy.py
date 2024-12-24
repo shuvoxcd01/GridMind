@@ -1,10 +1,11 @@
-from gridmind.algorithms.monte_carlo.monte_carlo_exploring_start import MonteCarloES
-from gridmind.algorithms.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
-from gridmind.algorithms.util import print_state_action_values
+
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_exploring_start import MonteCarloES
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
 from gridmind.policies.random_policy import RandomPolicy
 from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import (
     StochasticStartEpsilonGreedyPolicy,
 )
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 from pprint import pprint
 from gymnasium.wrappers.record_video import RecordVideo

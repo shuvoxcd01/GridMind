@@ -1,8 +1,9 @@
 from collections import defaultdict
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episode
-from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+
 from gridmind.policies.base_policy import BasePolicy
+from gridmind.utils.algorithm_util.episode_collector import collect_episode
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 from tqdm import tqdm
 

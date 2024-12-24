@@ -1,4 +1,4 @@
-from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
 import rl_worlds
 import gymnasium as gym
 from pprint import pprint

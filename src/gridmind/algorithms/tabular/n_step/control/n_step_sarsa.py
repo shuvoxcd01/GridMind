@@ -2,12 +2,11 @@ from collections import defaultdict
 import itertools
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+
 from gridmind.policies.base_policy import BasePolicy
-from gridmind.policies.soft.base_q_table_derived_soft_policy import BaseQTableDerivedSoftPolicy
-from gridmind.policies.soft.q_table_derived_epsilon_greedy_policy import (
-    QTableDerivedEpsilonGreedyPolicy,
-)
+from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import QTableDerivedEpsilonGreedyPolicy
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
@@ -18,7 +17,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         self,
         env: Env,
         n: int,
-        policy: Optional[BaseQTableDerivedSoftPolicy] = None,
+        policy: Optional[BaseQDerivedSoftPolicy] = None,
         step_size: float = 0.5,
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
