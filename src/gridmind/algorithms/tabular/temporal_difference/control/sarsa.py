@@ -1,9 +1,12 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.soft.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
-from gridmind.policies.soft.q_derived_epsilon_greedy_policy import (
-    QDerivedEpsilonGreedyPolicy,
+
+from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
+    BaseQDerivedSoftPolicy,
+)
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import (
+    QTableDerivedEpsilonGreedyPolicy,
 )
 from gymnasium import Env
 import numpy as np
@@ -38,7 +41,7 @@ class SARSA(BaseLearningAlgorithm):
         self.policy = (
             policy
             if policy is not None
-            else QDerivedEpsilonGreedyPolicy(
+            else QTableDerivedEpsilonGreedyPolicy(
                 q_table=self.q_values, num_actions=self.num_actions
             )
         )
@@ -71,7 +74,9 @@ class SARSA(BaseLearningAlgorithm):
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
                 next_action = self.policy.get_action(next_obs)
 
-                self.q_values[obs][action] = self.q_values[obs][action] + self.step_size * (
+                self.q_values[obs][action] = self.q_values[obs][
+                    action
+                ] + self.step_size * (
                     reward
                     + self.discount_factor * self.q_values[next_obs][next_action]
                     - self.q_values[obs][action]

@@ -4,9 +4,9 @@ from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
 from gridmind.policies.base_policy import BasePolicy
-from gridmind.policies.soft.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
-from gridmind.policies.soft.q_derived_epsilon_greedy_policy import (
-    QDerivedEpsilonGreedyPolicy,
+from gridmind.policies.soft.base_q_table_derived_soft_policy import BaseQTableDerivedSoftPolicy
+from gridmind.policies.soft.q_table_derived_epsilon_greedy_policy import (
+    QTableDerivedEpsilonGreedyPolicy,
 )
 from gymnasium import Env
 import numpy as np
@@ -18,7 +18,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         self,
         env: Env,
         n: int,
-        policy: Optional[BaseQDerivedSoftPolicy] = None,
+        policy: Optional[BaseQTableDerivedSoftPolicy] = None,
         step_size: float = 0.5,
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
@@ -42,7 +42,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         self.policy = (
             policy
             if policy is not None
-            else QDerivedEpsilonGreedyPolicy(
+            else QTableDerivedEpsilonGreedyPolicy(
                 q_table=self.q_values, num_actions=self.num_actions
             )
         )
