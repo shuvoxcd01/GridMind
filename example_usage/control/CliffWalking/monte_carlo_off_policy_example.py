@@ -1,7 +1,11 @@
-from gridmind.algorithms.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
-from gridmind.algorithms.util import print_state_action_values
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import (
+    MonteCarloOffPolicy,
+)
 from gridmind.policies.random_policy import RandomPolicy
-from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import StochasticStartEpsilonGreedyPolicy
+from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import (
+    StochasticStartEpsilonGreedyPolicy,
+)
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 
 
@@ -20,7 +24,7 @@ print_state_action_values(q_table, filename="cliffwalking_qtable.txt")
 policy = agent.get_policy()
 env.close()
 
-env = gym.make("CliffWalking-v0", render_mode = "human")
+env = gym.make("CliffWalking-v0", render_mode="human")
 
 obs, _ = env.reset()
 
@@ -31,7 +35,7 @@ for step in range(100):
     obs = next_obs
     env.render()
 
-    if terminated  or truncated:
+    if terminated or truncated:
         obs, _ = env.reset()
 
 env.close()

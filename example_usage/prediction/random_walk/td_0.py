@@ -1,6 +1,8 @@
-from gridmind.algorithms.temporal_difference.prediction.td_0_prediction import TD0Prediction
-from gridmind.algorithms.util import plot_state_values
+from gridmind.algorithms.tabular.temporal_difference.prediction.td_0_prediction import (
+    TD0Prediction,
+)
 from gridmind.policies.random_policy import RandomPolicy
+from gridmind.utils.vis_util import plot_state_values
 import random_walk_env
 import gymnasium as gym
 

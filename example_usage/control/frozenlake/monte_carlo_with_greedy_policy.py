@@ -1,5 +1,4 @@
-from gridmind.algorithms.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
-from gridmind.algorithms.monte_carlo.monte_carlo_off_policy_snb import MonteCarloOffPolicySnB
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
 from gridmind.policies.greedy.stochastic_start_greedy_policy import StochasticStartGreedyPolicy
 from gridmind.policies.random_policy import RandomPolicy
 import gymnasium as gym

@@ -1,4 +1,4 @@
-from gridmind.algorithms.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
 import rl_worlds
 import gymnasium as gym
 

@@ -1,4 +1,4 @@
-from gridmind.algorithms.temporal_difference.control.sarsa import SARSA
+from gridmind.algorithms.tabular.temporal_difference.control.sarsa import SARSA
 import rl_worlds
 import gymnasium as gym
 

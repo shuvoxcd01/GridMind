@@ -1,6 +1,5 @@
-from gridmind.algorithms.n_step.control.n_step_sarsa import NStepSARSA
-from gridmind.algorithms.temporal_difference.control.sarsa import SARSA
-from gridmind.algorithms.util import print_state_action_values
+from gridmind.algorithms.tabular.n_step.control.n_step_sarsa import NStepSARSA
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 
 

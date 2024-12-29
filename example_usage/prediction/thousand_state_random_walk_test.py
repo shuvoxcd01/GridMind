@@ -1,19 +1,19 @@
-from gridmind.algorithms.monte_carlo.prediction.gradient_monte_carlo import (
-    GradientMonteCarlo,
+from gridmind.algorithms.approximation.prediction.gradient_monte_carlo_prediction import (
+    GradientMonteCarloPrediction,
 )
-from gridmind.algorithms.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
-    MonteCarloEveryVisitPrediction,
-)
-from gridmind.algorithms.temporal_difference.prediction.semi_gradient_td_0_prediction import (
+from gridmind.algorithms.approximation.prediction.semi_gradient_td_0_prediction import (
     SemiGradientTD0Prediction,
 )
-from gridmind.algorithms.util import plot_state_values
-from gridmind.estimators.value_estimators.nn_value_estimator_linear import (
+from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
+    MonteCarloEveryVisitPrediction,
+)
+from gridmind.estimators.state_value_estimators.nn_value_estimator_linear import (
     NNValueEstimatorLinear,
 )
-from gridmind.feature_construction.one_hot import OneHotFeatureConstructor
+from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.feature_construction.state_aggregation import SimpleStateAggregator
 from gridmind.policies.random_policy import RandomPolicy
+from gridmind.utils.vis_util import plot_state_values
 import rl_worlds
 import gymnasium as gym
 import torch
@@ -29,14 +29,14 @@ true_value_predictor.evaluate_policy(num_episodes=10000)
 V = true_value_predictor.get_state_values()
 
 simple_aggregator = SimpleStateAggregator(span=100)
-one_hot_feature_constructor = OneHotFeatureConstructor(num_classes=10)
+one_hot_feature_constructor = OneHotEncoder(num_classes=10)
 aggregator = lambda s: one_hot_feature_constructor(simple_aggregator(s))
 
 gradient_mc_value_estimator = NNValueEstimatorLinear(observation_shape=(10,))
 semi_grad_td_estimator = NNValueEstimatorLinear(observation_shape=(10,))
 
 
-gradient_mc = GradientMonteCarlo(
+gradient_mc = GradientMonteCarloPrediction(
     env=env,
     policy=policy,
     step_size=0.001,

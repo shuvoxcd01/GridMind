@@ -1,5 +1,5 @@
-from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
-from gridmind.algorithms.util import print_state_action_values
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 from pprint import pprint
 from gymnasium.wrappers.record_video import RecordVideo

@@ -1,15 +1,12 @@
-from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
-from gridmind.algorithms.temporal_difference.control.sarsa import SARSA
-# from gridmind.algorithms.util import print_state_action_values
-from gridmind.policies.soft.q_derived_epsilon_greedy_policy import (
-    QDerivedEpsilonGreedyPolicy,
-)
+
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import QTableDerivedEpsilonGreedyPolicy
 import gymnasium as gym
 
 
 env = gym.make("FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False)
 agent = QLearning(env=env)
-policy = QDerivedEpsilonGreedyPolicy(
+policy = QTableDerivedEpsilonGreedyPolicy(
     q_table=agent.get_state_action_values(),
     num_actions=env.action_space.n,
     epsilon=0.8,
