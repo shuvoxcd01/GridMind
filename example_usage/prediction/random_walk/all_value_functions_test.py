@@ -4,7 +4,7 @@ from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import MonteCarloEveryVisitPredictionIncremental
 from gridmind.algorithms.tabular.n_step.prediction.n_step_td_prediction import NStepTDPrediction
 from gridmind.algorithms.tabular.temporal_difference.prediction.td_0_prediction import TD0Prediction
-from gridmind.feature_construction.one_hot import OneHotFeatureConstructor
+from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.policies.random_policy import RandomPolicy
 import gymnasium as gym
 import torch
@@ -12,7 +12,7 @@ import rl_worlds
 
 env = gym.make("rl_worlds/RandomWalk-v0", use_numeric_state_representation=True)
 policy = RandomPolicy(num_actions=env.action_space.n)
-feature_constructor = OneHotFeatureConstructor(num_classes=5)
+feature_constructor = OneHotEncoder(num_classes=5)
 
 all_estimated_values = []
 
