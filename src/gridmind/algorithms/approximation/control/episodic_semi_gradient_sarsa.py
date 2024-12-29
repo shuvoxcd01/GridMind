@@ -52,9 +52,9 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
                 if action_value_estimator is not None
                 else ActionValueEstimator(
                     observation_shape=observation_shape,
-                    num_hidden_layers=3,
+                    num_hidden_layers=0,
                     num_actions=self.env.action_space.n,
-                    use_bias=True,
+                    use_bias=False,
                 )
             )
 
