@@ -2,7 +2,7 @@ import copy
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.estimators.action_value_estimators.action_value_estimator import (
+from gridmind.value_estimators.action_value_estimators.action_value_estimator import (
     ActionValueEstimator,
 )
 from gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_policy import (

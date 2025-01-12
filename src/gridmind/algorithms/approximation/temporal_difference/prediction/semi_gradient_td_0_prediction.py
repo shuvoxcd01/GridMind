@@ -2,7 +2,7 @@ from collections import defaultdict
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.estimators.base_nn_estimator import BaseNNEstimator
+from gridmind.value_estimators.base_nn_estimator import BaseNNEstimator
 from gridmind.policies.base_policy import BasePolicy
 import gymnasium as gym
 import torch
