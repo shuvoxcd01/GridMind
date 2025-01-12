@@ -1,4 +1,4 @@
-from gridmind.estimators.base_nn_estimator import BaseNNEstimator
+from gridmind.value_estimators.base_nn_estimator import BaseNNEstimator
 
 
 class NNValueEstimatorLinear(BaseNNEstimator):
