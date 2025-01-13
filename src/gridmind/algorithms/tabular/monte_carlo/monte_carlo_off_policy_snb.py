@@ -45,7 +45,7 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
     def get_policy(self):
         return self.target_policy
 
-    def train(self, num_episodes: int, prediction_only: bool = False):
+    def _train(self, num_episodes: int, prediction_only: bool = False):
         trajectory = Trajectory()
 
         for _ in tqdm(range(num_episodes)):

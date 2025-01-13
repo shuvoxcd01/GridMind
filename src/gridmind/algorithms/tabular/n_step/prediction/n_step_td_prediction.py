@@ -38,7 +38,7 @@ class NStepTDPrediction(BaseLearningAlgorithm):
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
 
-    def train(self, num_episodes: int, prediction_only: bool = True):
+    def _train(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 

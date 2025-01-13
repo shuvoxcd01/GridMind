@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Optional
+from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
@@ -23,10 +23,13 @@ class SARSA(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
+        feature_constructor: Callable = None,
     ) -> None:
         super().__init__("SARSA")
         self.env = env
         self.num_actions = self.env.action_space.n
+
+        self.feature_constructor = feature_constructor
 
         assert q_initializer in [
             "zero",
@@ -61,17 +64,25 @@ class SARSA(BaseLearningAlgorithm):
     def get_policy(self):
         return self.policy
 
-    def train(self, num_episodes: int, prediction_only: bool = False):
+    def _train(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only:
             raise Exception("This is a control-only implementation.")
 
         for i in tqdm(range(num_episodes)):
             obs, info = self.env.reset()
+
+            if self.feature_constructor is not None:
+                obs = self.feature_constructor(obs)
+
             done = False
             action = self.policy.get_action(obs)
 
             while not done:
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
+
+                if self.feature_constructor is not None:
+                    next_obs = self.feature_constructor(next_obs)
+
                 next_action = self.policy.get_action(next_obs)
 
                 self.q_values[obs][action] = self.q_values[obs][
