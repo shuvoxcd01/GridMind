@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gridmind"
 version = "0.0.5"
-dependencies = ["gymnasium==0.29.1", "matplotlib==3.7.5", "numpy==1.24.4","tqdm>=4.66.5", "dill==0.3.8", "tabulate==0.9.0"]
+dependencies = ["gymnasium==1.0.0", "matplotlib==3.7.5", "numpy==1.24.4","tqdm>=4.66.5", "dill==0.3.8", "tabulate==0.9.0"]
 requires-python = ">= 3.8"
 authors=[{name="Falguni Das Shuvo"}]
 readme = "README.md"
@@ -16,6 +16,6 @@ keywords = ["Reinforcement Learning", "Temporal Difference", "TD Control","TD Pr
 Repository = "https://github.com/shuvoxcd01/GridMind.git"
 
 [project.optional-dependencies]
-examples=["gymnasium[toy-text]==0.29.1", "rl-worlds==0.0.1"]
-fun_app=["torch==2.5"]
-all=["torch==2.5", "gymnasium[toy-text]==0.29.1", "rl-worlds==0.0.1"]
+examples=["gymnasium[toy-text]==1.0.0", "rl-worlds==0.0.1"]
+fun_app=["torch==2.4.1"]
+all=["torch==2.4.1", "gymnasium[toy-text]==1.0.0",  "gymnasium[box2d]==1.0.0"]
