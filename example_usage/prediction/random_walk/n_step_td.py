@@ -25,7 +25,7 @@ for i in range(5):
     for s in states:
         algorithm.V[s] = 0.5
     algorithm.evaluate_policy(num_episodes=num_episodes[i])
-    V = algorithm.get_state_values()
+    V = algorithm._get_state_value_fn(force_functional_interface=False)
     print(V)
     estimated_values = [V[s] for s in states]
     print(estimated_values)

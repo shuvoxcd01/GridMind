@@ -1,13 +1,9 @@
-from gridmind.algorithms.approximation.prediction.gradient_monte_carlo_prediction import (
-    GradientMonteCarloPrediction,
-)
-from gridmind.algorithms.approximation.prediction.semi_gradient_td_0_prediction import (
-    SemiGradientTD0Prediction,
-)
+from gridmind.algorithms.approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
+from gridmind.algorithms.approximation.temporal_difference.prediction.semi_gradient_td_0_prediction import SemiGradientTD0Prediction
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
     MonteCarloEveryVisitPrediction,
 )
-from gridmind.estimators.state_value_estimators.nn_value_estimator_linear import (
+from gridmind.value_estimators.state_value_estimators.nn_value_estimator_linear import (
     NNValueEstimatorLinear,
 )
 from gridmind.feature_construction.one_hot import OneHotEncoder
@@ -26,7 +22,7 @@ true_value_predictor = MonteCarloEveryVisitPrediction(
 )
 
 true_value_predictor.evaluate_policy(num_episodes=10000)
-V = true_value_predictor.get_state_values()
+V = true_value_predictor._get_state_value_fn(force_functional_interface=False)
 
 simple_aggregator = SimpleStateAggregator(span=100)
 one_hot_feature_constructor = OneHotEncoder(num_classes=10)
@@ -47,7 +43,7 @@ gradient_mc = GradientMonteCarloPrediction(
 print(f"NN:\n{gradient_mc.V}")
 
 gradient_mc.evaluate_policy(num_episodes=10000)
-gradient_mc_V = gradient_mc.get_state_values()
+gradient_mc_V = gradient_mc.get_state_value_fn(force_functional_interface=False)
 
 semi_gradient_td = SemiGradientTD0Prediction(
     env=env,
@@ -58,7 +54,7 @@ semi_gradient_td = SemiGradientTD0Prediction(
     feature_constructor=aggregator,
 )
 semi_gradient_td.evaluate_policy(num_episodes=10000)
-semi_gradient_td_V = semi_gradient_td.get_state_values()
+semi_gradient_td_V = semi_gradient_td.get_state_value_fn(force_functional_interface=False)
 
 all_states = list(range(1000))
 true_values = [V[s] for s in all_states]

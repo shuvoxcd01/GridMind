@@ -1,5 +1,5 @@
 
-from gridmind.algorithms.approximation.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
+from gridmind.algorithms.approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import MonteCarloEveryVisitPrediction
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import MonteCarloEveryVisitPredictionIncremental
 from gridmind.algorithms.tabular.n_step.prediction.n_step_td_prediction import NStepTDPrediction
@@ -27,25 +27,25 @@ algorithm = GradientMonteCarloPrediction(
 print(f"NN:\n{algorithm.V}")
 
 algorithm.evaluate_policy(num_episodes=5000)
-V = algorithm.get_state_values()
+V = algorithm.get_state_value_fn()
 
 
 algorithm2 = NStepTDPrediction(env=env, policy=policy, n=50, discount_factor=1, step_size=0.005)
 
 algorithm2.evaluate_policy(num_episodes=1000)
-V2 = algorithm2.get_state_values()
+V2 = algorithm2._get_state_value_fn(False)
 
 algorithm3 = MonteCarloEveryVisitPredictionIncremental(env, policy, discount_factor=1, step_size=0.005)
 algorithm3.evaluate_policy(num_episodes=1000)
-V3 = algorithm3.get_state_values()
+V3 = algorithm3._get_state_value_fn(False)
 
 algorithm4 = TD0Prediction(env=env, policy=policy, discount_factor=1.0)
 algorithm4.evaluate_policy(num_episodes=1000)
-V4 = algorithm4.get_state_values()
+V4 = algorithm4._get_state_value_fn(False)
 
 algorithm5 = MonteCarloEveryVisitPrediction(env=env, policy=policy, discount_factor=1.0)
 algorithm5.evaluate_policy(num_episodes=1000)
-V5 = algorithm5.get_state_values()
+V5 = algorithm5._get_state_value_fn(False)
 
 obs, _ = env.reset()
 done = False
