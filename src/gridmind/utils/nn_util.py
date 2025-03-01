@@ -13,3 +13,5 @@ class NeuralNetworkToTableWrapper:
 
     def __setitem__(self, key, value):
         raise Exception("Cannot set values in a neural network.")
+    
+

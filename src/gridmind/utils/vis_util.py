@@ -57,3 +57,60 @@ def plot_state_values(states, true_values, estimated_values):
     plt.tight_layout()
     plt.savefig("True vs Estimated Values of States.png")
     plt.show()
+
+
+def print_value_table(
+    feature1,
+    feature2,
+    state_values,
+    feature1_name="Feature1",
+    feature2_name="Feature2",
+    filename: str = None,
+    append: bool = False,
+):
+
+    # Ensure inputs are of the same length
+    if not (len(feature1) == len(feature2) == len(state_values)):
+        raise ValueError("All input lists must have the same length.")
+
+    # Create a sorted list of unique values for each feature
+    feature1_values = sorted(set(feature1))
+    feature2_values = sorted(set(feature2))
+
+    # Create a mapping from (feature1, feature2) to state_values
+    value_dict = {
+        (f1, f2): "{:.2f}".format(val)
+        for f1, f2, val in zip(feature1, feature2, state_values)
+    }
+
+    # Build the table grid
+    table = []
+    for f1 in feature1_values:
+        row = [f1]  # Start with the row header
+        for f2 in feature2_values:
+            row.append(value_dict.get((f1, f2), "N/A"))  # Use "N/A" if no value exists
+        table.append(row)
+
+    # Add column headers and print the table
+    headers = [f"{feature1_name} \\ {feature2_name}"] + feature2_values
+
+    if filename is not None:
+        filemode = "a" if append else "w"
+        with open(filename, mode=filemode) as file:
+            print(tabulate(table, headers=headers, tablefmt="grid"), file=file)
+            file.write("\n")
+
+    else:
+        print(tabulate(table, headers=headers, tablefmt="grid"))
+        print("\n")
+
+
+if __name__ == "__main__":
+    # Example usage
+    feature1 = [0, 0, 1, 1]
+    feature2 = [0, 1, 0, 1]
+    state_values = [1.0, 0.5, 0.8, 0.2]
+
+    print_value_table(
+        feature1, feature2, state_values, feature1_name="X-axis", feature2_name="Y-axis"
+    )

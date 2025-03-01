@@ -21,5 +21,5 @@ class BasePerformanceEvaluator(ABC):
         self.epoch_eval_interval = epoch_eval_interval
 
     @abstractmethod
-    def evaluate_performance(*args, **kwargs):
+    def evaluate_performance(self, *args, **kwargs):
         raise NotImplementedError()
