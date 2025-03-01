@@ -8,34 +8,28 @@ from gridmind.policies.soft.stochastic_start_epsilon_greedy_policy import (
 from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 from pprint import pprint
-from gymnasium.wrappers.record_video import RecordVideo
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 env = gym.make("FrozenLake-v1")
 policy = StochasticStartEpsilonGreedyPolicy(num_actions=env.action_space.n)
 behavior_policy = RandomPolicy(num_actions=env.action_space.n)
 agent = MonteCarloES(env=env, policy=policy)
-# agent = MonteCarloOffPolicy(
-#     env=env, target_policy=policy, behavior_policy=behavior_policy
-# )
+
 
 agent.optimize_policy(num_episodes=100000)
 env.close()
 
-q_values = agent.get_state_action_values()
+q_values = agent.get_state_action_value_fn(force_functional_interface=False)
 print_state_action_values(q_table=q_values)
 
 pprint(f"Keys: {list(q_values.keys())}")
 
 pprint(q_values)
-policy = agent.get_policy()
+policy = agent._get_policy()
 
-env = gym.make("FrozenLake-v1", render_mode="rgb_array")
-
-env = RecordVideo(
-    env=env,
-    video_folder="data",
-    name_prefix="MC-EpsilonGreedy-Frozenlake",
-)
+env = gym.make("FrozenLake-v1", render_mode="human")
 
 obs, _ = env.reset()
 

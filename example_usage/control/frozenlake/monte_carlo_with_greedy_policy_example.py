@@ -1,9 +1,15 @@
-from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
-from gridmind.policies.greedy.stochastic_start_greedy_policy import StochasticStartGreedyPolicy
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import (
+    MonteCarloOffPolicy,
+)
+from gridmind.policies.greedy.stochastic_start_greedy_policy import (
+    StochasticStartGreedyPolicy,
+)
 from gridmind.policies.random_policy import RandomPolicy
 import gymnasium as gym
 
+import logging
 
+logging.basicConfig(level=logging.INFO)
 
 env = gym.make("FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False)
 policy = StochasticStartGreedyPolicy(num_actions=env.action_space.n)
@@ -14,12 +20,11 @@ agent = MonteCarloOffPolicy(
 
 agent.optimize_policy(num_episodes=1000000)
 
-q_values = agent.get_state_action_values()
-
-print(q_values)
 policy = agent.get_policy()
 
-env = gym.make("FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False, render_mode = "human")
+env = gym.make(
+    "FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False, render_mode="human"
+)
 
 obs, _ = env.reset()
 
@@ -31,7 +36,7 @@ for step in range(1000):
     obs = next_obs
     env.render()
 
-    if terminated  or truncated:
+    if terminated or truncated:
         obs, _ = env.reset()
 
 env.close()

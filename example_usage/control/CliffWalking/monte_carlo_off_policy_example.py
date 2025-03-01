@@ -17,11 +17,11 @@ agent = MonteCarloOffPolicy(
     env=env, target_policy=policy, behavior_policy=behavior_policy
 )
 agent.optimize_policy(num_episodes=1000)
-q_table = agent.get_state_action_values()
+q_table = agent.get_state_action_value_fn(force_functional_interface=False)
 
 print_state_action_values(q_table, filename="cliffwalking_qtable.txt")
 
-policy = agent.get_policy()
+policy = agent._get_policy()
 env.close()
 
 env = gym.make("CliffWalking-v0", render_mode="human")
