@@ -12,10 +12,16 @@ from gridmind.utils.performance_evaluation.base_performance_evaluator import (
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
     BasicPerformanceEvaluator,
 )
+from gridmind.wrappers.policy_wrappers.preprocessed_observation_policy_wrapper import (
+    PreprocessedObservationPolicyWrapper,
+)
 from gymnasium import Env
 from tqdm import trange
 
-from data import SAVE_DATA_DIR
+try:
+    from data import SAVE_DATA_DIR
+except ImportError:
+    SAVE_DATA_DIR = None
 
 
 class BaseLearningAlgorithm(ABC):
@@ -35,8 +41,12 @@ class BaseLearningAlgorithm(ABC):
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
-        self.performance_evaluator.policy_retriever_fn = self.get_policy
-        self.performance_evaluator.preprocessor_fn = self._preprocess
+
+        if self.performance_evaluator.policy_retriever_fn is None:
+            self.performance_evaluator.policy_retriever_fn = self._get_policy
+
+        if self.performance_evaluator.preprocessor_fn is None:
+            self.performance_evaluator.preprocessor_fn = self._preprocess
 
         self.perform_evaluation = True
         self.epoch_eval_interval = evaluator.epoch_eval_interval
@@ -47,13 +57,13 @@ class BaseLearningAlgorithm(ABC):
         self.stop_on_divergence = detector.stop_on_divergence
 
     def report_policy(self):
-        self.logger.info(f" Reporting policy: \n{self.get_policy()}")
+        self.logger.info(f" Reporting policy: \n{self._get_policy()}")
 
     def report_state_values(self):
-        return self.get_state_values()
+        return self._get_state_value_fn()
 
     def report_state_action_values(self):
-        return self.get_state_action_values()
+        return self._get_state_action_value_fn()
 
     def _preprocess(self, observation):
         return observation
@@ -65,16 +75,55 @@ class BaseLearningAlgorithm(ABC):
         return self.current_avg_return < self.prev_avg_return * 0.5
 
     @abstractmethod
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def get_state_action_values(self):
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def get_policy(self):
+    def _get_policy(self):
         raise NotImplementedError("This method must be overridden")
+
+    def get_state_value_fn(
+        self, force_functional_interface: bool = True, autopreprocess: bool = False
+    ):
+
+        if not autopreprocess:
+            return self._get_state_value_fn(
+                force_functional_interface=force_functional_interface
+            )
+
+        state_value_fn = lambda s: self._get_state_value_fn(
+            force_functional_interface=True
+        )(self._preprocess(s))
+
+        return state_value_fn
+
+    def get_state_action_value_fn(
+        self, force_functional_interface: bool = True, autopreprocess: bool = False
+    ):
+        if not autopreprocess:
+            return self._get_state_action_value_fn(
+                force_functional_interface=force_functional_interface
+            )
+
+        state_action_value_fn = lambda s, a: self._get_state_action_value_fn(
+            force_functional_interface=True
+        )(self._preprocess(s), a)
+
+        return state_action_value_fn
+
+    def get_policy(self, autopreprocess: bool = False):
+        if not autopreprocess:
+            return self._get_policy()
+
+        policy = PreprocessedObservationPolicyWrapper(
+            policy=self._get_policy(), preprocess_fn=self._preprocess
+        )
+
+        return policy
 
     @abstractmethod
     def set_policy(self, policy: BasePolicy, **kwargs):
@@ -85,7 +134,7 @@ class BaseLearningAlgorithm(ABC):
         raise NotImplementedError("This method must be overridden")
 
     def get_policy_cloned(self):
-        policy = self.get_policy()
+        policy = self._get_policy()
         cloned_policy = copy.deepcopy(policy)
 
         return cloned_policy
@@ -118,8 +167,10 @@ class BaseLearningAlgorithm(ABC):
                     break
 
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
-        self.save_policy(saved_policy_dir)
+
+        if SAVE_DATA_DIR is not None:
+            saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+            self.save_policy(saved_policy_dir)
 
     def _report_all_metrics(self):
         try:
@@ -136,8 +187,10 @@ class BaseLearningAlgorithm(ABC):
             self.logger.error(f"Error while reporting state-action values: {e}")
 
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
-        self.save_policy(saved_policy_dir)
+
+        if SAVE_DATA_DIR is not None:
+            saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+            self.save_policy(saved_policy_dir)
 
     def evaluate_policy(self, num_episodes: int):
         return self._train(num_episodes, prediction_only=True)
@@ -146,7 +199,7 @@ class BaseLearningAlgorithm(ABC):
         return self.train(num_episodes, prediction_only=False)
 
     def save_policy(self, path: str):
-        policy = self.get_policy()
+        policy = self._get_policy()
 
         saved_policy_path = os.path.join(path, self.name + "_saved_policy.pkl")
 

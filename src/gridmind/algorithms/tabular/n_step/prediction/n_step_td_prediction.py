@@ -26,17 +26,20 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         self.discount_factor = discount_factor
         self.n = n
 
-    def get_state_values(self):
-        return self.V
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.V
 
-    def get_state_action_values(self):
-        raise NotImplementedError
+        return lambda s: self.V[s]
 
-    def get_policy(self):
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
+        raise NotImplementedError()
+
+    def _get_policy(self):
         return self.policy
 
     def set_policy(self, policy: BasePolicy, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _train(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:

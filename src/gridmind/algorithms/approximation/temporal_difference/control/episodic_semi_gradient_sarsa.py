@@ -84,15 +84,18 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
 
         return obs
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
             f"{self.name} computes only state-action values. Use get_state_action_values() to get state-action values."
         )
 
-    def get_state_action_values(self):
-        return NeuralNetworkToTableWrapper(self.action_value_estimator)
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return NeuralNetworkToTableWrapper(self.action_value_estimator)
+        
+        return self.action_value_estimator
 
-    def get_policy(self):
+    def _get_policy(self):
         return self.policy
 
     def set_policy(self, policy, **kwargs):

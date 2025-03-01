@@ -11,7 +11,11 @@ class TD0Prediction(BaseLearningAlgorithm):
     """
 
     def __init__(
-        self, env: gym.Env, policy: BasePolicy, step_size: float = 0.1, discount_factor: float = 0.9
+        self,
+        env: gym.Env,
+        policy: BasePolicy,
+        step_size: float = 0.1,
+        discount_factor: float = 0.9,
     ) -> None:
         super().__init__(name="TD-0-Prediction")
         self.step_size = step_size
@@ -20,15 +24,18 @@ class TD0Prediction(BaseLearningAlgorithm):
         self.policy = policy
         self.discount_factor = discount_factor
 
-    def get_state_values(self):
-        return self.V
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.V
 
-    def get_state_action_values(self):
+        return lambda s: self.V[s]
+
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
-            f"{self.name} computes only the state values. Use get_state_values() method to get state values."
+            f"{self.name} computes only the state values. Use get_state_value_fn() method to get state values."
         )
 
-    def get_policy(self):
+    def _get_policy(self):
         return self.policy
 
     def _train(self, num_episodes: int, prediction_only: bool = True):
@@ -52,7 +59,3 @@ class TD0Prediction(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
-
-
-
-

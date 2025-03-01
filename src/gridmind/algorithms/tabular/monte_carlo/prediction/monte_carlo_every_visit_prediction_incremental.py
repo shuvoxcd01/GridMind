@@ -29,7 +29,7 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         self.step_size = step_size
         self.discount_factor = discount_factor
 
-    def get_policy(self):
+    def _get_policy(self):
         return self.policy
 
     def _train(self, num_episodes: int, prediction_only: bool):
@@ -51,17 +51,16 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
                     discounted_return - self.V[state]
                 )
 
-    def get_state_values(self):
-        return self.V
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.V
 
-    def get_state_action_values(self):
+        return lambda s: self.V[s]
+
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
-            f"{self.name} computes only the state values. Use get_state_values() method to get state values."
+            f"{self.name} computes only the state values. Use get_state_value_fn() method to get state values."
         )
 
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
-
-
-
-

@@ -13,13 +13,13 @@ class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
         self.policy = policy
         # ToDo: WIP
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError()
 
-    def get_state_action_values(self):
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError()
 
-    def get_policy(self):
+    def _get_policy(self):
         raise NotImplementedError()
 
     def _train(self, num_episodes: int, prediction_only: bool):

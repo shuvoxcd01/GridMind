@@ -42,7 +42,7 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
 
         self.discount_factor = discount_factor
 
-    def get_policy(self):
+    def _get_policy(self):
         return self.target_policy
 
     def _train(self, num_episodes: int, prediction_only: bool = False):
@@ -88,13 +88,16 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
 
         self.target_policy.q_values = self.q_values
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
-            f"{self.name} computes only state-action values. Use get_state_action_values() to get state-action values."
+            f"{self.name} computes only state-action values. Use _get_state_action_value_fn() to get state-action values."
         )
 
-    def get_state_action_values(self):
-        return self.q_values
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.q_values
+        
+        return lambda s, a: self.q_values[s][a]
 
     def set_policy(self, policy: BasePolicy, _type: str):
         assert _type.lower() in [

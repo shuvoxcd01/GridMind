@@ -4,8 +4,12 @@ from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.base_policy import BasePolicy
-from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
-from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import QTableDerivedEpsilonGreedyPolicy
+from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
+    BaseQDerivedSoftPolicy,
+)
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import (
+    QTableDerivedEpsilonGreedyPolicy,
+)
 from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 import numpy as np
@@ -50,13 +54,16 @@ class NStepSARSA(BaseLearningAlgorithm):
         self.discount_factor = discount_factor
         self.epsilon_decay = epsilon_decay
 
-    def get_state_values(self):
-        raise NotImplementedError
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
+        raise NotImplementedError()
 
-    def get_state_action_values(self):
-        return self.q_values
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.q_values
 
-    def get_policy(self):
+        return lambda s, a: self.q_values[s][a]
+
+    def _get_policy(self):
         return self.policy
 
     def set_policy(self, policy: BasePolicy, **kwargs):
@@ -113,7 +120,9 @@ class NStepSARSA(BaseLearningAlgorithm):
 
                     if tau + self.n < T:
                         _s, _a = trajectory.get_state_action(timestep=tau + self.n)
-                        _return += (self.discount_factor**self.n) * self.q_values[_s][_a]
+                        _return += (self.discount_factor**self.n) * self.q_values[_s][
+                            _a
+                        ]
 
                     state_to_update, action_to_update = trajectory.get_state_action(
                         timestep=tau

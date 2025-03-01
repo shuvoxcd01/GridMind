@@ -49,15 +49,15 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
 
         return shape
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         return self.V
 
-    def get_state_action_values(self):
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
-            f"{self.name} computes only the state values. Use get_state_values() method to get state values."
+            f"{self.name} computes only the state values. Use get_state_value_fn() method to get state values."
         )
 
-    def get_policy(self):
+    def _get_policy(self):
         return self.policy
 
     def _train(self, num_episodes: int, prediction_only: bool = True):

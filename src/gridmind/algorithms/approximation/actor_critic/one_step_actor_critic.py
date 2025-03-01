@@ -1,8 +1,8 @@
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.parameterized.discrete_action_network_policy import (
-    DiscreteActionNetworkPolicy,
+from gridmind.policies.parameterized.discrete_action_mlp_policy import (
+    DiscreteActionMLPPolicy,
 )
 from gridmind.value_estimators.base_nn_estimator import BaseNNEstimator
 
@@ -18,7 +18,8 @@ class OneStepActorCritic(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
-        policy: Optional[DiscreteActionNetworkPolicy] = None,
+        num_actions: int,
+        policy: Optional[DiscreteActionMLPPolicy] = None,
         value_estimator: Optional[BaseNNEstimator] = None,
         policy_step_size: float = 0.0001,
         value_step_size: float = 0.001,
@@ -41,11 +42,13 @@ class OneStepActorCritic(BaseLearningAlgorithm):
             if feature_constructor is None
             else self._determine_observation_shape()
         )
-        num_actions = self.env.action_space.n
+
+        self.num_actions = num_actions
+
         self.policy = (
             policy
             if policy is not None
-            else DiscreteActionNetworkPolicy(
+            else DiscreteActionMLPPolicy(
                 observation_shape=observation_shape,
                 num_actions=num_actions,
                 num_hidden_layers=2,
@@ -79,13 +82,16 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
         return obs
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.value_estimator
+
+        return lambda s: self.value_estimator(s).cpu().detach().item()
+
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         raise Exception()
 
-    def get_state_action_values(self):
-        raise Exception()
-
-    def get_policy(self):
+    def _get_policy(self):
         return self.policy
 
     def set_policy(self, policy, **kwargs):
@@ -134,18 +140,35 @@ class OneStepActorCritic(BaseLearningAlgorithm):
                 )
                 self.logger.debug(f"Policy grads: {policy_grads}")
 
+                # if self.clip_grads:
+                #     value_grads = [
+                #         torch.clamp(grad, -self.grad_clip_value, self.grad_clip_value)
+                #         for grad in value_grads
+                #     ]
+
+                #     self.logger.debug(f"Clipped value grads: {value_grads}")
+
+                #     policy_grads = [
+                #         torch.clamp(grad, -self.grad_clip_value, self.grad_clip_value)
+                #         for grad in policy_grads
+                #     ]
+
+                #     self.logger.debug(f"Clipped policy grads: {policy_grads}")
+
                 if self.clip_grads:
-                    value_grads = [
-                        torch.clamp(grad, -self.grad_clip_value, self.grad_clip_value)
-                        for grad in value_grads
-                    ]
+                    # Clipping for value gradients
+                    value_norm = torch.sqrt(sum(grad.norm()**2 for grad in value_grads if grad is not None))
+                    if value_norm > self.grad_clip_value:
+                        scaling_factor = self.grad_clip_value / value_norm
+                        value_grads = [grad * scaling_factor if grad is not None else None for grad in value_grads]
 
                     self.logger.debug(f"Clipped value grads: {value_grads}")
 
-                    policy_grads = [
-                        torch.clamp(grad, -self.grad_clip_value, self.grad_clip_value)
-                        for grad in policy_grads
-                    ]
+                    # Clipping for policy gradients
+                    policy_norm = torch.sqrt(sum(grad.norm()**2 for grad in policy_grads if grad is not None))
+                    if policy_norm > self.grad_clip_value:
+                        scaling_factor = self.grad_clip_value / policy_norm
+                        policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
 
                     self.logger.debug(f"Clipped policy grads: {policy_grads}")
 

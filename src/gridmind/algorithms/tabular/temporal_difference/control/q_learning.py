@@ -3,8 +3,12 @@ from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.policies.base_policy import BasePolicy
 
-from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import BaseQDerivedSoftPolicy
-from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import QTableDerivedEpsilonGreedyPolicy
+from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
+    BaseQDerivedSoftPolicy,
+)
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import (
+    QTableDerivedEpsilonGreedyPolicy,
+)
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
@@ -46,15 +50,18 @@ class QLearning(BaseLearningAlgorithm):
         self.step_size = step_size
         self.discount_factor = discount_factor
 
-    def get_state_values(self):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
             f"{self.name} computes only state-action values. Use get_state_action_values() to get state-action values."
         )
 
-    def get_state_action_values(self):
-        return self.q_values
+    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
+        if not force_functional_interface:
+            return self.q_values
 
-    def get_policy(self):
+        return lambda s, a: self.q_values[s][a]
+
+    def _get_policy(self):
         return self.policy
 
     def _train(self, num_episodes: int, prediction_only: bool = False):
@@ -69,7 +76,9 @@ class QLearning(BaseLearningAlgorithm):
                 action = self.policy.get_action(obs)
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
 
-                self.q_values[obs][action] = self.q_values[obs][action] + self.step_size * (
+                self.q_values[obs][action] = self.q_values[obs][
+                    action
+                ] + self.step_size * (
                     reward
                     + self.discount_factor * np.max(self.q_values[next_obs])
                     - self.q_values[obs][action]
