@@ -17,10 +17,10 @@ agent = MonteCarloOffPolicy(
 )
 
 agent.optimize_policy(num_episodes=20000)
-q_table = agent.get_state_action_values()
+q_table = agent.get_state_action_value_fn(force_functional_interface=False)
 print_state_action_values(q_table, filename="taxi_qtable_mc_off_policy.txt")
 
-policy = agent.get_policy()
+policy = agent._get_policy()
 env.close()
 
 env = gym.make("Taxi-v3", render_mode="human")
