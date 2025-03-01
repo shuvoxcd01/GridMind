@@ -167,10 +167,13 @@ cython_debug/
 
 #Exploratory Tests
 exploratory_tests/*
+
 #Data
 data/*
+
 #Image files
 *.png
+
 .DS_Store
 cliffwalking_qtable_nstep_sarsa.txt
 cliffwalking_qtable_q_learning.txt
@@ -185,3 +188,9 @@ example_usage/prediction/.DS_Store
 notebooks/test1.ipynb
 notebooks/test2.ipynb
 notebooks/test3.ipynb
+
+# notebooks
+notebooks/*
+
+# text files
+*.txt
