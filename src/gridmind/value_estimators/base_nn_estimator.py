@@ -49,6 +49,8 @@ class BaseNNEstimator(nn.Module):
         )
 
     def forward(self, x):
+        x = x.view(-1)  # Flatten input tensor
+        
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
 
