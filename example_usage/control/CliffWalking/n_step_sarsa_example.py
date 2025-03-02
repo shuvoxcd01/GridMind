@@ -1,19 +1,18 @@
-from gridmind.algorithms.n_step.control.n_step_sarsa import NStepSARSA
-from gridmind.algorithms.temporal_difference.control.sarsa import SARSA
-from gridmind.algorithms.util import print_state_action_values
+from gridmind.algorithms.tabular.n_step.control.n_step_sarsa import NStepSARSA
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 
 
 env = gym.make("CliffWalking-v0")
-agent = NStepSARSA(env=env,n=50, step_size=0.01)
+agent = NStepSARSA(env=env, n=50, step_size=0.01)
 
 agent.optimize_policy(num_episodes=10000)
 
-q_table = agent.get_state_action_values()
+q_table = agent.get_state_action_value_fn(force_functional_interface=False)
 print_state_action_values(q_table, filename="cliffwalking_qtable_nstep_sarsa.txt")
 
 
-policy = agent.get_policy()
+policy = agent._get_policy()
 env.close()
 
 env = gym.make("CliffWalking-v0", render_mode="human")

@@ -1,18 +1,18 @@
-from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
-from gridmind.algorithms.util import print_state_action_values
+
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
+from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
-from pprint import pprint
 
 env = gym.make("Taxi-v3")
 agent = QLearning(env=env, step_size=0.01, q_initializer='random')
 
 agent.optimize_policy(num_episodes=100000)
 
-q_table = agent.get_state_action_values()
+q_table = agent.get_state_action_value_fn(force_functional_interface=False)
 print(f"Number of states visited: {len(q_table.keys())}")
 print_state_action_values(q_table, filename="taxi_qtable_q_learning.txt")
 
-policy = agent.get_policy()
+policy = agent._get_policy()
 
 env.close()
 

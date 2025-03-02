@@ -17,3 +17,6 @@ class BasePolicy(ABC):
     @abstractmethod
     def update(self, state, action):
         raise NotImplementedError("This method must be overridden")
+
+    def __call__(self, state, *args, **kwds):
+        return self.get_action(state=state)
