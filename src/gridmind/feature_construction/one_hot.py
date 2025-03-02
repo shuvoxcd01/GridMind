@@ -1,7 +1,7 @@
 import torch.nn.functional as F
 import torch
 
-class OneHotFeatureConstructor:
+class OneHotEncoder:
     def __init__(self, num_classes:int):
         self.num_classes = num_classes
 

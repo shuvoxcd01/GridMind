@@ -1,16 +1,16 @@
-from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
-from gridmind.algorithms.temporal_difference.control.sarsa import SARSA
-# from gridmind.algorithms.util import print_state_action_values
-from gridmind.policies.soft.q_derived_epsilon_greedy_policy import (
-    QDerivedEpsilonGreedyPolicy,
-)
-import gymnasium as gym
 
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
+from gridmind.policies.soft.q_derived.q_table_derived_epsilon_greedy_policy import QTableDerivedEpsilonGreedyPolicy
+from gridmind.utils.vis_util import print_state_action_values
+import gymnasium as gym
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 env = gym.make("FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False)
 agent = QLearning(env=env)
-policy = QDerivedEpsilonGreedyPolicy(
-    q_table=agent.get_state_action_values(),
+policy = QTableDerivedEpsilonGreedyPolicy(
+    q_table=agent.get_state_action_value_fn(force_functional_interface=False),
     num_actions=env.action_space.n,
     epsilon=0.8,
     decay_rate=0.001,
@@ -20,11 +20,10 @@ agent.set_policy(policy=policy)
 
 agent.optimize_policy(num_episodes=10000)
 
-q_values = agent.get_state_action_values()
-#print_state_action_values(q_table=q_values)
+q_values = agent.get_state_action_value_fn(force_functional_interface=False)
+print_state_action_values(q_table=q_values)
 
-print(q_values)
-policy = agent.get_policy()
+policy = agent._get_policy()
 
 env = gym.make(
     "FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False, render_mode="human"

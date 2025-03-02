@@ -16,23 +16,25 @@ This library is also designed to serve as a companion for readers of the book *R
 
 ## 📜 Algorithms Included
 
-### 1. Monte Carlo Methods
+### Tabular
+#### 1. Monte Carlo Methods
    - **Every-Visit MC**: *Prediction*
    - **Exploring Starts**: *Prediction & Control*
    - **Off-Policy MC**: *Prediction & Control*
 
-### 2. Temporal Difference (TD) Methods
+#### 2. Temporal Difference (TD) Methods
    - **TD(0)**: *Prediction*
    - **SARSA**: *Control*
    - **Q-Learning**: *Control*
 
-### 3. N-Step Methods
+#### 3. N-Step Methods
    - **N_Step TD Prediction**: *Prediction*
    - **N_Step SARSA**: *Control*
 
-### 4. Function Approximation
+### Function Approximation
    - **Semi-gradient TD-0 Prediction**: *Prediction*
    - **Gradient Monte-Carlo Prediction**: *Prediction*
+   - **Episodic Semi-gradient SARSA**: *Control*
      
 
 </td>
@@ -69,7 +71,7 @@ To use GridMind, you’ll need:
 
 2. **Basic Usage**:  
     ```python
-    from gridmind.algorithms.temporal_difference.control.q_learning import QLearning
+    from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
     import gymnasium as gym
 
     # Initialize the Taxi-v3 environment
