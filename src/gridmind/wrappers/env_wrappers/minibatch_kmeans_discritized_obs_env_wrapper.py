@@ -1,6 +1,6 @@
-from gridmind.env_wrappers.base_gym_wrapper import BaseGymWrapper
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
 from gridmind.feature_construction.tile_coding import TileCoding
+from gridmind.wrappers.env_wrappers.base_gym_wrapper import BaseGymWrapper
 from sklearn.cluster import MiniBatchKMeans
 
 
