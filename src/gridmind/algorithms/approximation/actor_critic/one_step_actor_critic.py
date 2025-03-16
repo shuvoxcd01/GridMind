@@ -28,10 +28,9 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
     ):
-        super().__init__("OneStepActorCritic")
+        super().__init__("OneStepActorCritic", env)
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
-        self.env = env
         self.discount_factor = discount_factor
         self.clip_grads = clip_grads
         self.grad_clip_value = grad_clip_value
@@ -64,7 +63,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
-
+        
         features = self.feature_constructor(observation)
 
         shape = features.shape
