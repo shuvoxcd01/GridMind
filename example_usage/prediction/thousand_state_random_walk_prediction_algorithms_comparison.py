@@ -1,5 +1,5 @@
-from gridmind.algorithms.approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
-from gridmind.algorithms.approximation.temporal_difference.prediction.semi_gradient_td_0_prediction import SemiGradientTD0Prediction
+from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
+from gridmind.algorithms.function_approximation.temporal_difference.prediction.semi_gradient_td_0_prediction import SemiGradientTD0Prediction
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
     MonteCarloEveryVisitPrediction,
 )

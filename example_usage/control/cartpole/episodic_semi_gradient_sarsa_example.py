@@ -1,5 +1,5 @@
 
-from gridmind.algorithms.approximation.temporal_difference.control.episodic_semi_gradient_sarsa import EpisodicSemiGradientSARSA
+from gridmind.algorithms.function_approximation.temporal_difference.control.episodic_semi_gradient_sarsa import EpisodicSemiGradientSARSA
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
 from gridmind.feature_construction.tile_coding import TileCoding
 from gridmind.utils.divergence.avg_return_based_divergence_detector import AvgReturnBasedDivergenceDetector
