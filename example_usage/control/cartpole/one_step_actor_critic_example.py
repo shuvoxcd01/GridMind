@@ -1,4 +1,4 @@
-from gridmind.algorithms.approximation.actor_critic.one_step_actor_critic import (
+from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import (
     OneStepActorCritic,
 )
 
