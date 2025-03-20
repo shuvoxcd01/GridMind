@@ -21,19 +21,19 @@ class ActorCriticPolicy(nn.Module, BasePolicy):
         num_actions = envs.action_space.n
 
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(observation_shape, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 1), std=1.0),
+            nn.Linear(observation_shape, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
         )
         
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(observation_shape, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, num_actions), std=0.01),
+            nn.Linear(observation_shape, 64),
+            nn.ReLU(),
+            nn.Linear(64, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_actions),
         )
 
     def get_value(self, x):
