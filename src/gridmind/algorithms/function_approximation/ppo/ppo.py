@@ -1,7 +1,7 @@
 import logging
 import numbers
 import random
-from typing import Callable
+from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 from gymnasium import Env
@@ -18,14 +18,14 @@ class PPO(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
-        num_actions: int,
-        policy: ActorCriticPolicy,
+        policy: Optional[ActorCriticPolicy] = None,
         policy_step_size: float = 0.00001,
         value_step_size: float = 0.001,
         discount_factor: float = 0.99,
         feature_constructor: Callable = None,
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
+        entropy_coefficient: float = 0.02,
     ):
         super().__init__("ProximalPolicyOptimization", env)
         self.policy_step_size = policy_step_size
@@ -40,13 +40,21 @@ class PPO(BaseLearningAlgorithm):
             if feature_constructor is None
             else self._determine_observation_shape()
         )
-        self.num_actions = num_actions
-        self.policy = policy
+        num_actions = env.action_space.n
+        self.policy = (
+            policy
+            if policy is not None
+            else ActorCriticPolicy(
+                observation_shape=observation_shape,
+                num_actions=num_actions,
+            )
+        )
         self.T = 500
         self.num_epochs = 10
         self.minibatch_size = 64
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.policy_step_size)
         self.epsilon = 0.2
+        self.entropy_coefficient = entropy_coefficient
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
@@ -153,7 +161,7 @@ class PPO(BaseLearningAlgorithm):
 
                     entropy_bonus =  dist_entropy.reshape(-1,1)
 
-                    total_objective = torch.mean(clipped_surrogate_objective - 0.5 * squared_error_loss + -0.02 * entropy_bonus)
+                    total_objective = torch.mean(clipped_surrogate_objective - 0.5 * squared_error_loss + self.entropy_coefficient * entropy_bonus)
                     total_loss = -total_objective
 
                     total_loss.backward()
