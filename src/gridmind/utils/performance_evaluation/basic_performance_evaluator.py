@@ -64,4 +64,4 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
         self.logger.info(f"Average episode reward: {avg_episode_return}")
         self.logger.info(f"Average episode length: {avg_episode_length}")
 
-        return avg_episode_return, avg_episode_length
+        return {"Avg Episode Return":avg_episode_return, "Avg Episode Length":avg_episode_length}
