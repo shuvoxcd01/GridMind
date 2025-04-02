@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import copy
 import os
+import time
 from typing import Optional
 import dill
 from gridmind.policies.base_policy import BasePolicy
@@ -17,6 +18,7 @@ from gridmind.wrappers.policy_wrappers.preprocessed_observation_policy_wrapper i
 )
 from gymnasium import Env
 from tqdm import trange
+from torch.utils.tensorboard import SummaryWriter
 
 try:
     from data import SAVE_DATA_DIR
@@ -38,6 +40,11 @@ class BaseLearningAlgorithm(ABC):
         self.perform_evaluation = False
         self.monitor_divergence = False
         self.stop_on_divergence = False
+        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+        summary_dir = os.path.join(SAVE_DATA_DIR, env_name,"summaries", self.name, "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"))
+        if not os.path.exists(summary_dir):
+            os.makedirs(summary_dir)
+        self.summary_writer = SummaryWriter(log_dir=summary_dir)
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
@@ -156,7 +163,11 @@ class BaseLearningAlgorithm(ABC):
             self._train(num_inner_iter, prediction_only)
 
             if self.perform_evaluation:
-                self.performance_evaluator.evaluate_performance()
+                performance_evaluation = self.performance_evaluator.evaluate_performance()
+                if performance_evaluation:
+                    steps_count = epoch * num_inner_iter
+                    for key, value in performance_evaluation.items():
+                        self.summary_writer.add_scalar(key, value, steps_count)
 
             if self.monitor_divergence and self.divergence_detector.detect_divergence():
                 self.logger.warning("Divergence detected.")
