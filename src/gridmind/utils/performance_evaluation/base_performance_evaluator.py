@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional
 
 from gridmind.policies.base_policy import BasePolicy
 from gymnasium import Env
@@ -21,5 +21,5 @@ class BasePerformanceEvaluator(ABC):
         self.epoch_eval_interval = epoch_eval_interval
 
     @abstractmethod
-    def evaluate_performance(self, *args, **kwargs):
+    def evaluate_performance(self, *args, **kwargs)->Dict:
         raise NotImplementedError()
