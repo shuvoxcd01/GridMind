@@ -195,6 +195,9 @@ notebooks/*
 # text files
 *.txt
 
+*_r.py
+*_r *.py
+
 *test.py
 
 
