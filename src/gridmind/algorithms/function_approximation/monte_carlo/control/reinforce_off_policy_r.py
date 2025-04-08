@@ -1,5 +1,5 @@
+
 import numbers
-import os
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.policies.base_policy import BasePolicy
@@ -9,13 +9,11 @@ from gridmind.utils.algorithm_util.episode_collector import collect_episode
 from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import NNValueEstimatorMultilayer
+from gridmind.wrappers.policy_wrappers.epsilon_randomized_policy_wrapper import EpsilonRandomizedPolicyWrapper
 from gymnasium import Env
 import torch
 from tqdm import trange
-from torch.utils.tensorboard import SummaryWriter
-import time
 
-from data import SAVE_DATA_DIR
 
 
 class ReinforceOffPolicy(BaseLearningAlgorithm):
@@ -190,8 +188,14 @@ if __name__ == "__main__":
     eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
     performance_evaluator = BasicPerformanceEvaluator(env= eval_env, epoch_eval_interval=500)
+    target_policy = DiscreteActionMLPPolicy(
+        observation_shape=env.observation_space.shape,
+        num_actions=env.action_space.n,
+        num_hidden_layers=2,
+    )
+    behavior_policy = EpsilonRandomizedPolicyWrapper(policy=target_policy, num_actions=env.action_space.n, epsilon=0.2)
     # policy = ActorCriticPolicy(env)
-    algorithm = ReinforceOffPolicy(env=env, policy_step_size=0.0001)
+    algorithm = ReinforceOffPolicy(env=env, target_policy=target_policy, behavior_policy=behavior_policy,  policy_step_size=0.0001)
     algorithm.register_performance_evaluator(performance_evaluator)
 
     algorithm.train(num_episodes=100000, prediction_only=False)
