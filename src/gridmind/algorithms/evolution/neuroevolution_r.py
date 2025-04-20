@@ -187,7 +187,7 @@ class NeuroEvolution:
                 if agent.fitness is None:
                     agent_to_assess_fitness.append(agent)
 
-            with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            with multiprocessing.Pool(processes=self.num_processes) as pool:
                 evaluation_results = pool.map(self.evaluate_fitness, [agent.network for agent in agent_to_assess_fitness])
 
             for agent, evaluation_result in zip(agent_to_assess_fitness, evaluation_results):
