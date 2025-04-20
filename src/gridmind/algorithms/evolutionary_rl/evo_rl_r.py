@@ -1,14 +1,11 @@
 
-from copy import deepcopy
 import logging
 import os
 import time
-from gridmind.algorithms.evolution.neuroevolution_r import NeuroEvolution
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_r import NeuroEvolution
 from gridmind.algorithms.function_approximation.monte_carlo.control.reinforce_off_policy_experience_r import ReinforceOffPolicyExperience
-from gridmind.algorithms.function_approximation.monte_carlo.control.reinforce_off_policy_r import ReinforceOffPolicy
 from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
 from gridmind.feature_construction.one_hot import OneHotEncoder
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 from gridmind.utils.performance_evaluation.evo_rl_basic_performance_evaluator_r import EvoRLBasicPerformanceEvaluator
 from torch.utils.tensorboard import SummaryWriter
 
