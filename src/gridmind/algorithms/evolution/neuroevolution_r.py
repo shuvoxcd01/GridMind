@@ -1,13 +1,15 @@
+from collections import deque
 from copy import deepcopy
 import logging
 import multiprocessing
 import numbers
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Union
+from gridmind.algorithms.evolution.neuro_agent import NeuroAgent
 from gridmind.algorithms.evolution.neuroevolution_util import NeuroEvolutionUtil
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
-from gridmind.utils.algorithm_util.simple_replay_buffer import SimpleReplayBuffer
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 
 from gymnasium import Env
 import torch
@@ -15,23 +17,12 @@ from tqdm import trange
 import numpy as np
 import gymnasium as gym
 
-class NeuroAgent(object):
-    def __init__(
-        self,
-        network: Optional[DiscreteActionMLPPolicy] = None,
-        fitness: Optional[float] = None):
-        self.network = network
-        self.fitness = fitness
-
-
 
 class NeuroEvolution:
     def __init__(
         self,
         env: Env,
-        population:Optional[List[NeuroAgent]] = None,
-        policy_step_size: float = 0.0001,
-        discount_factor: float = 1.0,
+        population:Optional[Union[List[DiscreteActionMLPPolicy], List[NeuroAgent]]] = None,
         feature_constructor: Callable = None,
         highest_fitness: Optional[float] = None,
         mu: int = 5,
@@ -42,28 +33,56 @@ class NeuroEvolution:
         self.env = env
         self.mu = mu
         self._lambda = _lambda
-        self.policy_step_size = policy_step_size
-        self.discount_factor = discount_factor
         self.curate_trajectory = curate_trajectory
-        self.experience_buffer = SimpleReplayBuffer() if curate_trajectory else None
-
+        self.experience_buffer = deque(maxlen=100) if curate_trajectory else None
         self.feature_constructor = feature_constructor
         self.observation_shape = (
             self.env.observation_space.shape
             if feature_constructor is None
             else self._determine_observation_shape()
         )
-        self.highest_fitness = highest_fitness
+        self.highest_fitness_possible = highest_fitness
 
         self.num_actions = self.env.action_space.n
+        self.best_agent = None
+        self.num_processes = multiprocessing.cpu_count()//2
 
-        self.population = population if population is not None else self.initialize_population()
+        if population is None:
+            self.population = self.initialize_population()
+        elif isinstance(population[0], DiscreteActionMLPPolicy):
+            self.population = [NeuroAgent(network=policy) for policy in population]
+        elif isinstance(population[0], NeuroAgent):
+            self.population = population
+        
+    
+    def extract_policies_from_population(self):        
+        policies = []
+        for agent in self.population:
+            policies.append(agent.network)
 
+        return policies
+    
     def initialize_population(self):
         population = []
         for _ in range(self._lambda):
             population.append(self.spawn_individual())
         return population
+    
+    def get_population(self):
+        return self.population
+    
+    def set_population_from_policies(self, population:List[DiscreteActionMLPPolicy]):
+        self.population = [NeuroAgent(network=network) for network in population]
+
+    def set_population(self, population:List[NeuroAgent]):
+        self.population = population
+
+    def add_individual(self, individual:NeuroAgent):
+        self.population.append(individual)
+
+    def add_inidvidual_from_policy(self, policy:DiscreteActionMLPPolicy):
+        individual = NeuroAgent(network=policy)
+        self.population.append(individual)
     
     def spawn_individual(self):
         network =  DiscreteActionMLPPolicy(
@@ -96,20 +115,25 @@ class NeuroEvolution:
 
         return obs
 
-    def _get_state_value_fn(self, force_functional_interface: bool = True):
-        if not force_functional_interface:
-            return self.value_estimator
 
-        return lambda s: self.value_estimator(s).cpu().detach().item()
+    def get_best(self, unwrapped:bool = True):
+        assert self.best_agent is not None, "Best policy not found. Please train the algorithm first."
 
-    def _get_state_action_value_fn(self, force_functional_interface: bool = True):
-        raise Exception()
-
-    def _get_policy(self):
-        return self.policy
-
-    def set_policy(self, policy, **kwargs):
-        self.policy = policy
+        if unwrapped:
+            return self.best_agent.network
+        
+        return self.best_agent
+    
+    def get_population(self):
+        assert self.population is not None, "Population not found. Please train the algorithm first."
+        return self.population
+    
+    def get_experience_buffer(self):
+        assert self.experience_buffer is not None, "Experience buffer not found. Please train the algorithm first."
+        return self.experience_buffer
+    
+    def reset_experience_buffer(self):
+        self.experience_buffer = list()
 
     def mutate(self, network, mean, std):
         chromosome = NeuroEvolutionUtil.get_parameters_vector(network)
@@ -119,28 +143,42 @@ class NeuroEvolution:
 
         return mutated_chromosome
     
-    def evaluate_fitness(self, policy:DiscreteActionMLPPolicy):
-        episode_storage = SimpleReplayBuffer()
+    @torch.no_grad
+    def evaluate_fitness(self, policy:DiscreteActionMLPPolicy, average_over_episodes: int = 3):
+        curated_trajectories = []
+        
+        for i in range(average_over_episodes):
+            trajectory = Trajectory()
+            add_trajectory = False
+            obs, info = self.env.reset()
+            done = False
 
-        obs, info = self.env.reset()
-        done = False
+            sum_episode_return = 0.0
 
-        episode_return = 0.0
+            while not done:
+                preprocessed_obs = self._preprocess(obs)
+                action = policy.get_action(preprocessed_obs)
+                action_prob = policy.get_action_probs(preprocessed_obs, action)
+                next_obs, reward, terminated, truncated, info = self.env.step(action)
+                if self.curate_trajectory and reward != 0:
+                    add_trajectory = True
+                sum_episode_return += reward
+                done = terminated or truncated
+                trajectory.record_step(state=obs, action=action, reward=reward, next_state=next_obs, 
+                                            terminated=terminated, truncated=truncated, action_prob=action_prob)
+                obs = next_obs
 
-        while not done:
-            preprocessed_obs = self._preprocess(obs)
-            action = policy.get_action(preprocessed_obs)
-            next_obs, reward, terminated, truncated, info = self.env.step(action)
-            episode_return += reward
-            done = terminated or truncated
-            episode_storage.store(obs, action, reward, next_obs, terminated, truncated)
-            obs = next_obs
+            if add_trajectory:
+                curated_trajectories.append(trajectory)
 
-        return episode_return, episode_storage
+        return sum_episode_return/ average_over_episodes, curated_trajectories
 
 
     def train(self, num_generations: int):
-        best_agent = None
+        self.best_agent = None
+
+        if self.population is None:
+            self.population = self.initialize_population()
 
         for generation in trange(num_generations):
             agent_to_assess_fitness = []
@@ -150,24 +188,28 @@ class NeuroEvolution:
                     agent_to_assess_fitness.append(agent)
 
             with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-                _results = pool.map(self.evaluate_fitness, [agent.network for agent in agent_to_assess_fitness])
+                evaluation_results = pool.map(self.evaluate_fitness, [agent.network for agent in agent_to_assess_fitness])
 
-            for agent, _result in zip(agent_to_assess_fitness, _results):
-                fitness, episode_buffer = _result
+            for agent, evaluation_result in zip(agent_to_assess_fitness, evaluation_results):
+                fitness, curated_trajectories = evaluation_result
                 agent.fitness = fitness
-                if self.curate_trajectory and fitness != 0:
-                    self.experience_buffer.extend(episode_buffer)
-            
-                if best_agent is None or agent.fitness > best_agent.fitness:
-                    best_agent = agent
+
+                if self.curate_trajectory:
+                    self.experience_buffer.extend(curated_trajectories)
+                  
+                if self.best_agent is None or agent.fitness > self.best_agent.fitness:
+                    self.best_agent = agent
                     
-                    if self.highest_fitness is not None and best_agent.fitness >= self.highest_fitness:
-                        return best_agent, self.experience_buffer
+                    if self.highest_fitness_possible is not None and self.best_agent.fitness >= self.highest_fitness_possible:
+                        best_policy = self.best_agent.network
+                        best_fitness = self.best_agent.fitness
+                        all_policies = self.extract_policies_from_population()
+                        return best_policy, best_fitness, self.experience_buffer, all_policies
         
             average_fitness = sum([agent.fitness for agent in self.population])/len(self.population)
             self.logger.info(f"Generation: {generation}, Average Fitness: {average_fitness}")
-            if best_agent is not None:
-                self.logger.info(f"Best Agent Fitness: {best_agent.fitness}")
+            if self.best_agent is not None:
+                self.logger.info(f"Best Agent Fitness: {self.best_agent.fitness}")
             
                 
             #Select parents
@@ -185,8 +227,11 @@ class NeuroEvolution:
                     NeuroEvolutionUtil.set_parameters_vector(child.network, mutated_param_vector)
                     self.population.append(child)
 
-        return best_agent, self.experience_buffer
-
+        best_policy = self.best_agent.network
+        best_fitness = self.best_agent.fitness
+        all_policies = self.extract_policies_from_population()
+        return best_policy, best_fitness, self.experience_buffer, all_policies
+    
 if __name__ == "__main__":
     # env = gym.make("CartPole-v1")
     env = gym.make(
@@ -194,15 +239,12 @@ if __name__ == "__main__":
     )
     algorithm = NeuroEvolution(env=env, highest_fitness=1)
 
-    best_agent, curated_replay_buffer = algorithm.train(num_generations=10000)
-
-    samples = curated_replay_buffer.sample(1)
-    print(samples)
+    best_policy, best_fitness, trajectories, all_policies = algorithm.train(num_generations=10000)
 
     eval_env = gym.make(
         "FrozenLake-v1", desc=None, map_name="4x4", is_slippery=False, render_mode="human"
     )
-    policy = best_agent.network
+    policy = best_policy
 
     obs, info = eval_env.reset()
     done = False
