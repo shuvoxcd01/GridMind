@@ -3,26 +3,19 @@ import logging
 import multiprocessing
 import numbers
 from typing import Callable, List, Optional
-from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
-from gridmind.algorithms.evolutionary_rl.neuro_agent import NeuroAgent
-from gridmind.algorithms.evolutionary_rl.neuroevolution_util import NeuroEvolutionUtil
+
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import NeuroEvolutionUtil
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
-from gridmind.value_estimators.base_nn_estimator import BaseNNEstimator
 
-from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import (
-    NNValueEstimatorMultilayer,
-)
 from gymnasium import Env
 import torch
 from tqdm import trange
 import numpy as np
 import gymnasium as gym
-
-
-
 
 
 class NeuroEvolution:
