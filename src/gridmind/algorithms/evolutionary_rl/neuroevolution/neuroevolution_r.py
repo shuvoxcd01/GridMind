@@ -4,8 +4,9 @@ import logging
 import multiprocessing
 import numbers
 from typing import Callable, List, Optional, Union
-from gridmind.algorithms.evolution.neuro_agent import NeuroAgent
-from gridmind.algorithms.evolution.neuroevolution_util import NeuroEvolutionUtil
+
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import NeuroEvolutionUtil
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
