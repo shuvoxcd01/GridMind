@@ -3,6 +3,7 @@ import copy
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
+from gridmind.algorithms.function_approximation.base_function_approximation_based_learning_algorithm import BaseFunctionApproximationBasedLearingAlgorithm
 from gridmind.value_estimators.base_nn_estimator import BaseNNEstimator
 from gridmind.policies.base_policy import BasePolicy
 from gridmind.utils.algorithm_util.episode_collector import collect_episode
@@ -15,7 +16,7 @@ import torch.nn.functional as F
 import numbers
 
 
-class GradientMonteCarloPrediction(BaseLearningAlgorithm):
+class GradientMonteCarloPrediction(BaseFunctionApproximationBasedLearingAlgorithm):
 
     def __init__(
         self,
@@ -26,9 +27,7 @@ class GradientMonteCarloPrediction(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         feature_constructor: Callable = None,
     ) -> None:
-        super().__init__(name="GradientMCPrediction")
-
-        self.env = env
+        super().__init__(name="GradientMCPrediction", env=env, feature_constructor=feature_constructor)
         self.policy = policy
         self.feature_constructor = feature_constructor
         observation_shape = (
@@ -67,7 +66,7 @@ class GradientMonteCarloPrediction(BaseLearningAlgorithm):
         trajectory = Trajectory()
 
         for i in tqdm(range(num_episodes)):
-            collect_episode(env=self.env, policy=self.policy, trajectory=trajectory)
+            collect_episode(env=self.env, policy=self.policy, trajectory=trajectory, obs_preprocessor=self._preprocess)
 
             discounted_return = 0.0
 
