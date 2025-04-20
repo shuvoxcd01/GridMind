@@ -147,14 +147,13 @@ class NeuroEvolution:
     @torch.no_grad
     def evaluate_fitness(self, policy:DiscreteActionMLPPolicy, average_over_episodes: int = 3):
         curated_trajectories = []
-        
+        sum_episode_return = 0.0
+
         for i in range(average_over_episodes):
             trajectory = Trajectory()
             add_trajectory = False
             obs, info = self.env.reset()
             done = False
-
-            sum_episode_return = 0.0
 
             while not done:
                 preprocessed_obs = self._preprocess(obs)
