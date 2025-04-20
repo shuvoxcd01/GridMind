@@ -1,18 +1,16 @@
-from gridmind.policies.base_policy import BasePolicy
+from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
 from torch import nn
-import math
 import torch
 import torch.nn.functional as F
 
 
-class DiscreteActionCNNPolicy(nn.Module, BasePolicy):
+class DiscreteActionCNNPolicy(BaseParameterizedPolicy):
     def __init__(
         self,
         observation_shape: tuple,
         num_actions: int,
     ):
-        nn.Module.__init__(self)
-        BasePolicy.__init__(self)
+        super().__init__(observation_shape=observation_shape, num_actions=num_actions)
 
         H, W, C = observation_shape
 

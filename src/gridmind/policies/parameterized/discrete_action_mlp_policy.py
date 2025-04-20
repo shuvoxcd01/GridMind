@@ -1,11 +1,11 @@
-from gridmind.policies.base_policy import BasePolicy
+from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
 from torch import nn
 import math
 import torch
 import torch.nn.functional as F
 
 
-class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
+class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
     def __init__(
         self,
         observation_shape: tuple,
@@ -15,8 +15,7 @@ class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
         out_features: int = 16,
         use_bias: bool = True,
     ):
-        nn.Module.__init__(self)
-        BasePolicy.__init__(self)
+        super().__init__(observation_shape=observation_shape, num_actions=num_actions)
 
         num_input_features = math.prod(observation_shape)
         self.num_hidden_layers = num_hidden_layers
