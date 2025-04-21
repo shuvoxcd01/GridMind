@@ -1,4 +1,6 @@
-from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
+from gridmind.policies.parameterized.base_parameterized_policy import (
+    BaseParameterizedPolicy,
+)
 from torch import nn
 import math
 import torch
@@ -76,6 +78,6 @@ class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
         action_probs = F.softmax(action_probs, dim=-1)
 
         return action_probs[action]
-    
+
     def update(self, state, action, value):
         pass

@@ -27,7 +27,7 @@ class ActorCriticPolicy(nn.Module, BasePolicy):
             nn.ReLU(),
             nn.Linear(64, 1),
         )
-        
+
         self.actor = nn.Sequential(
             nn.Linear(observation_shape, 64),
             nn.ReLU(),

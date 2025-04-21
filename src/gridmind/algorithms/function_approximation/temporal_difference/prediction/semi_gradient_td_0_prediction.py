@@ -92,7 +92,7 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
                 delta = self.step_size * (target_value - value_pred)
 
                 grads = torch.autograd.grad(value_pred, self.V.parameters())
-                
+
                 with torch.no_grad():
                     for param, grad in zip(self.V.parameters(), grads):
                         param.copy_(param.data + delta * grad)
