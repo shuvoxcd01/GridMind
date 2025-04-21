@@ -3,7 +3,9 @@ import numbers
 import random
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
+    BasicPerformanceEvaluator,
+)
 from gymnasium import Env
 import torch
 from tqdm import trange
@@ -13,6 +15,7 @@ import torch.nn as nn
 torch.autograd.set_detect_anomaly(True)
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 class PPO(BaseLearningAlgorithm):
     def __init__(
@@ -52,7 +55,9 @@ class PPO(BaseLearningAlgorithm):
         self.T = 500
         self.num_epochs = 10
         self.minibatch_size = 64
-        self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=self.policy_step_size)
+        self.optimizer = torch.optim.Adam(
+            self.policy.parameters(), lr=self.policy_step_size
+        )
         self.epsilon = 0.2
         self.entropy_coefficient = entropy_coefficient
 
@@ -73,10 +78,11 @@ class PPO(BaseLearningAlgorithm):
             obs = torch.tensor(obs, dtype=torch.float32)
 
         return obs
-    def _get_state_value_fn(self, force_functional_interface = True):
+
+    def _get_state_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
-    def _get_state_action_value_fn(self, force_functional_interface = True):
+    def _get_state_action_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
     def _get_policy(self):
@@ -84,11 +90,11 @@ class PPO(BaseLearningAlgorithm):
 
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
-    
+
     @staticmethod
     def _create_minibatches_generator(data, batch_size):
         for i in range(0, len(data), batch_size):
-            yield data[i:i + batch_size]
+            yield data[i : i + batch_size]
 
     def _train(self, num_episodes, prediction_only):
         assert not prediction_only, "Prediction only is not supported for PPO"
@@ -108,22 +114,26 @@ class PPO(BaseLearningAlgorithm):
                     observation = self._preprocess(observation)
 
                     done = False
-                    
+
                     while not done:
-                        action, log_prob, _, cur_state_value = self.policy.get_action_and_value(observation)
-                        next_observation, reward, terminated, truncated, _ = self.env.step(action.detach().cpu().item())
+                        action, log_prob, _, cur_state_value = (
+                            self.policy.get_action_and_value(observation)
+                        )
+                        next_observation, reward, terminated, truncated, _ = (
+                            self.env.step(action.detach().cpu().item())
+                        )
 
                         next_observation = self._preprocess(next_observation)
                         next_state_value = (
-                            self.policy.get_value(next_observation) if not terminated else torch.tensor([0.0])
+                            self.policy.get_value(next_observation)
+                            if not terminated
+                            else torch.tensor([0.0])
                         )
                         # cur_state_value = self.policy.get_value(observation)
 
                         v_targ = reward + self.discount_factor * next_state_value
 
-                        delta = (
-                            v_targ - cur_state_value
-                        )
+                        delta = v_targ - cur_state_value
 
                         observations.append(observation)
                         actions.append(action)
@@ -134,34 +144,57 @@ class PPO(BaseLearningAlgorithm):
                         done = terminated or truncated
                         observation = next_observation
 
-            
             for epoch in range(self.num_epochs):
                 indices = list(range(len(observations)))
                 random.shuffle(indices)
 
-                for minibatch_indices in self._create_minibatches_generator(indices, self.minibatch_size):
+                for minibatch_indices in self._create_minibatches_generator(
+                    indices, self.minibatch_size
+                ):
                     with torch.no_grad():
-                        minibatch_observations = torch.stack([observations[i] for i in minibatch_indices])
-                        minibatch_actions = torch.stack([actions[i] for i in minibatch_indices])
-                        minibatch_deltas = torch.stack([deltas[i] for i in minibatch_indices]).reshape(-1, 1)
-                        minibatch_v_targs = torch.stack([v_targs[i] for i in minibatch_indices]).reshape(-1, 1)
-                        minibatch_log_probs = torch.stack([log_probs[i] for i in minibatch_indices]).reshape(-1, 1)
+                        minibatch_observations = torch.stack(
+                            [observations[i] for i in minibatch_indices]
+                        )
+                        minibatch_actions = torch.stack(
+                            [actions[i] for i in minibatch_indices]
+                        )
+                        minibatch_deltas = torch.stack(
+                            [deltas[i] for i in minibatch_indices]
+                        ).reshape(-1, 1)
+                        minibatch_v_targs = torch.stack(
+                            [v_targs[i] for i in minibatch_indices]
+                        ).reshape(-1, 1)
+                        minibatch_log_probs = torch.stack(
+                            [log_probs[i] for i in minibatch_indices]
+                        ).reshape(-1, 1)
 
-                    _, cur_logprob, dist_entropy, cur_values = self.policy.get_action_and_value(minibatch_observations, minibatch_actions)
-                    cur_logprob = cur_logprob.reshape(-1,1)
-                    dist_entropy = dist_entropy.reshape(-1,1)
+                    _, cur_logprob, dist_entropy, cur_values = (
+                        self.policy.get_action_and_value(
+                            minibatch_observations, minibatch_actions
+                        )
+                    )
+                    cur_logprob = cur_logprob.reshape(-1, 1)
+                    dist_entropy = dist_entropy.reshape(-1, 1)
 
-                    log_ratio = (cur_logprob - minibatch_log_probs)
-                    ratio = log_ratio.exp().reshape(-1,1)
+                    log_ratio = cur_logprob - minibatch_log_probs
+                    ratio = log_ratio.exp().reshape(-1, 1)
 
-                    clipped_ratio = torch.clamp(ratio, 1-self.epsilon, 1+self.epsilon)
+                    clipped_ratio = torch.clamp(
+                        ratio, 1 - self.epsilon, 1 + self.epsilon
+                    )
 
-                    clipped_surrogate_objective = torch.min(ratio*minibatch_deltas, clipped_ratio*minibatch_deltas)
-                    squared_error_loss = 0.5 * (minibatch_v_targs - cur_values)**2
+                    clipped_surrogate_objective = torch.min(
+                        ratio * minibatch_deltas, clipped_ratio * minibatch_deltas
+                    )
+                    squared_error_loss = 0.5 * (minibatch_v_targs - cur_values) ** 2
 
-                    entropy_bonus =  dist_entropy.reshape(-1,1)
+                    entropy_bonus = dist_entropy.reshape(-1, 1)
 
-                    total_objective = torch.mean(clipped_surrogate_objective - 0.5 * squared_error_loss + self.entropy_coefficient * entropy_bonus)
+                    total_objective = torch.mean(
+                        clipped_surrogate_objective
+                        - 0.5 * squared_error_loss
+                        + self.entropy_coefficient * entropy_bonus
+                    )
                     total_loss = -total_objective
 
                     total_loss.backward()
@@ -176,7 +209,9 @@ if __name__ == "__main__":
     env = gym.make("CartPole-v1")
 
     eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
-    performance_evaluator = BasicPerformanceEvaluator(env= eval_env, epoch_eval_interval=100)
+    performance_evaluator = BasicPerformanceEvaluator(
+        env=eval_env, epoch_eval_interval=100
+    )
     policy = ActorCriticPolicy(env)
     algorithm = PPO(env=env, num_actions=env.action_space.n, policy=policy)
     algorithm.register_performance_evaluator(performance_evaluator)

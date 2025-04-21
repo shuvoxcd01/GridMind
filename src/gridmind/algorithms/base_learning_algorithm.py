@@ -31,8 +31,8 @@ class BaseLearningAlgorithm(ABC):
         self,
         name: str,
         env: Optional[Env] = None,
-        summary_dir:Optional[str] = None,
-        write_summary:bool = True
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -46,14 +46,22 @@ class BaseLearningAlgorithm(ABC):
 
         self.write_summary = write_summary
         if self.write_summary:
-            assert summary_dir is not None or SAVE_DATA_DIR is not None, "Please specify summary_dir"
-        
+            assert (
+                summary_dir is not None or SAVE_DATA_DIR is not None
+            ), "Please specify summary_dir"
+
             self._initialize_summary_writer(summary_dir, env_name)
 
     def _initialize_summary_writer(self, summary_dir, env_name):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
-        log_dir = os.path.join(summary_dir, env_name,"summaries", self.name, "run_" + time.strftime("%Y-%m-%d_%H-%M-%S")) 
+        log_dir = os.path.join(
+            summary_dir,
+            env_name,
+            "summaries",
+            self.name,
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+        )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
@@ -176,7 +184,9 @@ class BaseLearningAlgorithm(ABC):
             self._train(num_inner_iter, prediction_only)
 
             if self.perform_evaluation:
-                performance_evaluation = self.performance_evaluator.evaluate_performance()
+                performance_evaluation = (
+                    self.performance_evaluator.evaluate_performance()
+                )
                 if performance_evaluation:
                     steps_count = epoch * num_inner_iter
                     if self.write_summary:

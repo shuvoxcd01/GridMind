@@ -2,7 +2,15 @@ import time
 from typing import Optional
 import gymnasium as gym
 
-def make_env(gym_id, seed, idx, record_episode_stat:bool= True,capture_video:bool=True, run_name:Optional[str] = None ):
+
+def make_env(
+    gym_id,
+    seed,
+    idx,
+    record_episode_stat: bool = True,
+    capture_video: bool = True,
+    run_name: Optional[str] = None,
+):
     if run_name is None:
         run_name = f"{gym_id}__{seed}__{int(time.time())}"
 
@@ -24,7 +32,27 @@ def make_env(gym_id, seed, idx, record_episode_stat:bool= True,capture_video:boo
     return _make_env
 
 
-def make_sync_vec_env(num_envs:int, gym_id, seed, idx, record_episode_stat:bool= True,capture_video:bool=True, run_name:Optional[str] = None):
-    envs = gym.vector.SyncVectorEnv([make_env(gym_id=gym_id, seed=seed+i, idx=i, record_episode_stat=record_episode_stat, capture_video=capture_video, run_name=run_name) for i in range(num_envs)])
+def make_sync_vec_env(
+    num_envs: int,
+    gym_id,
+    seed,
+    idx,
+    record_episode_stat: bool = True,
+    capture_video: bool = True,
+    run_name: Optional[str] = None,
+):
+    envs = gym.vector.SyncVectorEnv(
+        [
+            make_env(
+                gym_id=gym_id,
+                seed=seed + i,
+                idx=i,
+                record_episode_stat=record_episode_stat,
+                capture_video=capture_video,
+                run_name=run_name,
+            )
+            for i in range(num_envs)
+        ]
+    )
 
     return envs

@@ -63,7 +63,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
-        
+
         features = self.feature_constructor(observation)
 
         shape = features.shape
@@ -156,18 +156,34 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
                 if self.clip_grads:
                     # Clipping for value gradients
-                    value_norm = torch.sqrt(sum(grad.norm()**2 for grad in value_grads if grad is not None))
+                    value_norm = torch.sqrt(
+                        sum(
+                            grad.norm() ** 2 for grad in value_grads if grad is not None
+                        )
+                    )
                     if value_norm > self.grad_clip_value:
                         scaling_factor = self.grad_clip_value / value_norm
-                        value_grads = [grad * scaling_factor if grad is not None else None for grad in value_grads]
+                        value_grads = [
+                            grad * scaling_factor if grad is not None else None
+                            for grad in value_grads
+                        ]
 
                     self.logger.debug(f"Clipped value grads: {value_grads}")
 
                     # Clipping for policy gradients
-                    policy_norm = torch.sqrt(sum(grad.norm()**2 for grad in policy_grads if grad is not None))
+                    policy_norm = torch.sqrt(
+                        sum(
+                            grad.norm() ** 2
+                            for grad in policy_grads
+                            if grad is not None
+                        )
+                    )
                     if policy_norm > self.grad_clip_value:
                         scaling_factor = self.grad_clip_value / policy_norm
-                        policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
+                        policy_grads = [
+                            grad * scaling_factor if grad is not None else None
+                            for grad in policy_grads
+                        ]
 
                     self.logger.debug(f"Clipped policy grads: {policy_grads}")
 

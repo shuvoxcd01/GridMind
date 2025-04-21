@@ -27,4 +27,3 @@ class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
-
