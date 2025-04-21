@@ -29,28 +29,43 @@ class NeuroEvolution:
             Union[List[DiscreteActionMLPPolicy], List[NeuroAgent]]
         ] = None,
         feature_constructor: Callable = None,
-        highest_fitness: Optional[float] = None,
         mu: int = 5,
         _lambda: int = 20,
+        mutation_mean: float = 0,
+        mutation_std: float = 0.1,
+        num_processes: Optional[int] = None,
+        num_trajectories: int = 100,
+        stopping_fitness: Optional[float] = None,
         curate_trajectory: bool = True,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.setLevel(logging.DEBUG)
         self.env = env
         self.mu = mu
         self._lambda = _lambda
+        self.mutation_mean = mutation_mean
+        self.mutation_std = mutation_std
+        self.num_processes = (
+            num_processes
+            if num_processes is not None
+            else (multiprocessing.cpu_count() // 2)
+        )
         self.curate_trajectory = curate_trajectory
-        self.experience_buffer = deque(maxlen=100) if curate_trajectory else None
         self.feature_constructor = feature_constructor
         self.observation_shape = (
             self.env.observation_space.shape
             if feature_constructor is None
             else self._determine_observation_shape()
         )
-        self.highest_fitness_possible = highest_fitness
+        self.highest_fitness_possible = stopping_fitness
 
         self.num_actions = self.env.action_space.n
         self.best_agent = None
-        self.num_processes = multiprocessing.cpu_count() // 2
+        self._population_fitness = None
+        self.num_trajectories = num_trajectories
+        self.experience_buffer = (
+            deque(maxlen=self.num_trajectories) if curate_trajectory else None
+        )
 
         if population is None:
             self.population = self.initialize_population()
@@ -58,6 +73,13 @@ class NeuroEvolution:
             self.population = [NeuroAgent(network=policy) for policy in population]
         elif isinstance(population[0], NeuroAgent):
             self.population = population
+
+    @property
+    def population_fitness(self):
+        assert (
+            self._population_fitness is not None
+        ), "Population fitness not found. Please train the algorithm first."
+        return self._population_fitness
 
     def extract_policies_from_population(self):
         policies = []
@@ -190,9 +212,8 @@ class NeuroEvolution:
         return sum_episode_return / average_over_episodes, curated_trajectories
 
     def train(self, num_generations: int):
-        self.best_agent = None
-
         if self.population is None:
+            self.logger.debug("Population is None. Initializing population.")
             self.population = self.initialize_population()
 
         for generation in trange(num_generations):
@@ -218,6 +239,9 @@ class NeuroEvolution:
                     self.experience_buffer.extend(curated_trajectories)
 
                 if self.best_agent is None or agent.fitness > self.best_agent.fitness:
+                    self.logger.debug(
+                        f"New best agent found with fitness: {agent.fitness}"
+                    )
                     self.best_agent = agent
 
                     if (
@@ -227,6 +251,9 @@ class NeuroEvolution:
                         best_policy = self.best_agent.network
                         best_fitness = self.best_agent.fitness
                         all_policies = self.extract_policies_from_population()
+                        self.logger.info(
+                            f"Found agent with stopping fitness. Best fitness: {best_fitness}"
+                        )
                         return (
                             best_policy,
                             best_fitness,
@@ -237,6 +264,7 @@ class NeuroEvolution:
             average_fitness = sum([agent.fitness for agent in self.population]) / len(
                 self.population
             )
+            self._population_fitness = average_fitness
             self.logger.info(
                 f"Generation: {generation}, Average Fitness: {average_fitness}"
             )
@@ -255,7 +283,9 @@ class NeuroEvolution:
             for parent in parents:
                 for _ in range(self._lambda // self.mu):
                     mutated_param_vector = self.mutate(
-                        network=parent.network, mean=0, std=0.1
+                        network=parent.network,
+                        mean=self.mutation_mean,
+                        std=self.mutation_std,
                     )
                     child = self.spawn_individual()
                     NeuroEvolutionUtil.set_parameters_vector(
@@ -266,6 +296,7 @@ class NeuroEvolution:
         best_policy = self.best_agent.network
         best_fitness = self.best_agent.fitness
         all_policies = self.extract_policies_from_population()
+        self.logger.info(f"Stopping evolution. Best fitness: {best_fitness}")
         return best_policy, best_fitness, self.experience_buffer, all_policies
 
 
