@@ -16,7 +16,6 @@ class EvoRLBasicPerformanceEvaluator(BasePerformanceEvaluator):
         num_episodes: int = 5,
         epoch_eval_interval: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
-        
     ):
         super().__init__(
             env=env,
@@ -29,9 +28,11 @@ class EvoRLBasicPerformanceEvaluator(BasePerformanceEvaluator):
         if self.preprocessor_fn is None:
             self.preprocessor_fn = lambda x: x
 
-        self.logger = logger if logger is not None else logging.getLogger(self.__class__.__name__)
+        self.logger = (
+            logger if logger is not None else logging.getLogger(self.__class__.__name__)
+        )
 
-    def evaluate_performance(self, policy:BasePolicy):
+    def evaluate_performance(self, policy: BasePolicy):
         episode_returns = []
         episode_lengths = []
 
@@ -60,4 +61,7 @@ class EvoRLBasicPerformanceEvaluator(BasePerformanceEvaluator):
         self.logger.info(f"Average episode reward: {avg_episode_return}")
         self.logger.info(f"Average episode length: {avg_episode_length}")
 
-        return {"Avg Episode Return":avg_episode_return, "Avg Episode Length":avg_episode_length}
+        return {
+            "Avg Episode Return": avg_episode_return,
+            "Avg Episode Length": avg_episode_length,
+        }

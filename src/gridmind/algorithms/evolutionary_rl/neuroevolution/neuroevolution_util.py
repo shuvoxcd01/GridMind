@@ -6,7 +6,6 @@ from gymnasium import Env
 import torch
 
 
-
 class NeuroEvolutionUtil:
     @staticmethod
     @torch.no_grad  # Function to extract weights as a flat vector
