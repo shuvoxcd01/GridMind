@@ -1,23 +1,30 @@
 import numbers
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.parameterized.discrete_action_mlp_policy import DiscreteActionMLPPolicy
+from gridmind.policies.parameterized.discrete_action_mlp_policy import (
+    DiscreteActionMLPPolicy,
+)
 from gridmind.utils.algorithm_util.episode_collector import collect_episode
 from gridmind.utils.algorithm_util.trajectory import Trajectory
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
+    BasicPerformanceEvaluator,
+)
 from gymnasium import Env
 import torch
 from tqdm import trange
 
 
 class Reinforce(BaseLearningAlgorithm):
-    def __init__(self,  env:Env, 
-                policy:Optional[DiscreteActionMLPPolicy]=None, 
-                step_size:float=0.0001,
-                discount_factor:float=0.99, 
-                feature_constructor=None, 
-                grad_clip_value: float = 1.0,):
-        
+    def __init__(
+        self,
+        env: Env,
+        policy: Optional[DiscreteActionMLPPolicy] = None,
+        step_size: float = 0.0001,
+        discount_factor: float = 0.99,
+        feature_constructor=None,
+        grad_clip_value: float = 1.0,
+    ):
+
         super().__init__("Reinforce", env)
         self.policy = policy
         self.step_size = step_size
@@ -45,7 +52,7 @@ class Reinforce(BaseLearningAlgorithm):
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
-        
+
         features = self.feature_constructor(observation)
 
         shape = features.shape
@@ -62,11 +69,11 @@ class Reinforce(BaseLearningAlgorithm):
             obs = torch.tensor(obs, dtype=torch.float32)
 
         return obs
-   
-    def _get_state_value_fn(self, force_functional_interface = True):
+
+    def _get_state_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
-    def _get_state_action_value_fn(self, force_functional_interface = True):
+    def _get_state_action_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
     def _get_policy(self):
@@ -75,29 +82,33 @@ class Reinforce(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
-    def _train(self, num_episodes, prediction_only:bool = False):
+    def _train(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")
 
         trajectory = Trajectory()
 
         for i in trange(num_episodes):
-            collect_episode(env=self.env, policy=self.policy, trajectory=trajectory, obs_preprocessor=self._preprocess)
-
+            collect_episode(
+                env=self.env,
+                policy=self.policy,
+                trajectory=trajectory,
+                obs_preprocessor=self._preprocess,
+            )
 
             discounted_return = 0.0
 
             for timestep in reversed(range(trajectory.get_trajectory_length())):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
-                
+
                 log_prob = torch.log(self.policy.get_action_probs(obs, action))
-               
+
                 policy_grads = torch.autograd.grad(
                     log_prob,
                     self.policy.parameters(),
                 )
-                if i%100 == 0 and i!=0:
+                if i % 100 == 0 and i != 0:
                     self.logger.debug(f"Policy grads: {policy_grads}")
 
                 # # Clipping for policy gradients
@@ -107,22 +118,29 @@ class Reinforce(BaseLearningAlgorithm):
                 #     policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
 
                 # self.logger.debug(f"Clipped policy grads: {policy_grads}")
-                
+
                 with torch.no_grad():
-                    for param, grad in zip(
-                        self.policy.parameters(), policy_grads
-                    ):
-                        param.copy_(param.data + self.step_size * (self.discount_factor**timestep) * discounted_return * grad)
+                    for param, grad in zip(self.policy.parameters(), policy_grads):
+                        param.copy_(
+                            param.data
+                            + self.step_size
+                            * (self.discount_factor**timestep)
+                            * discounted_return
+                            * grad
+                        )
 
 
 if __name__ == "__main__":
     import gymnasium as gym
     from gymnasium.wrappers import NormalizeReward
+
     env = gym.make("CartPole-v1")
 
     eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
-    performance_evaluator = BasicPerformanceEvaluator(env= eval_env, epoch_eval_interval=500)
+    performance_evaluator = BasicPerformanceEvaluator(
+        env=eval_env, epoch_eval_interval=500
+    )
     # policy = ActorCriticPolicy(env)
     algorithm = Reinforce(env=env, step_size=0.0001)
     algorithm.register_performance_evaluator(performance_evaluator)

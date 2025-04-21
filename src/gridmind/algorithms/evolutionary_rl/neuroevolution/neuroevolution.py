@@ -9,7 +9,9 @@ from typing import Callable, List, Optional
 
 
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
-from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import NeuroEvolutionUtil
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import (
+    NeuroEvolutionUtil,
+)
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
@@ -28,13 +30,13 @@ class NeuroEvolution:
     def __init__(
         self,
         env: Env,
-        population:Optional[List[NeuroAgent]] = None,
+        population: Optional[List[NeuroAgent]] = None,
         mu: int = 5,
         _lambda: int = 20,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
         feature_constructor: Callable = None,
-        num_processes:Optional[int] = None,
+        num_processes: Optional[int] = None,
         stopping_fitness: Optional[float] = None,
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
@@ -54,23 +56,35 @@ class NeuroEvolution:
             else self._determine_observation_shape()
         )
         self.highest_possible_fitness = stopping_fitness
-        self.num_processes = num_processes if num_processes is not None else multiprocessing.cpu_count() // 2
+        self.num_processes = (
+            num_processes
+            if num_processes is not None
+            else multiprocessing.cpu_count() // 2
+        )
 
         self.num_actions = self.env.action_space.n
 
-        self.population = population if population is not None else self.initialize_population()
+        self.population = (
+            population if population is not None else self.initialize_population()
+        )
 
         self.write_summary = write_summary
 
         if self.write_summary:
             self._initialize_summary_writer(summary_dir=summary_dir)
 
-
     def _initialize_summary_writer(self, summary_dir=None):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
-        log_dir = os.path.join(summary_dir, env_name,"summaries", self.name, f"-mutation_mean_{self.mutation_mean}-mutation_std_{self.mutation_std}-", "run_" + time.strftime("%Y-%m-%d_%H-%M-%S")) 
+        log_dir = os.path.join(
+            summary_dir,
+            env_name,
+            "summaries",
+            self.name,
+            f"-mutation_mean_{self.mutation_mean}-mutation_std_{self.mutation_std}-",
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+        )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
@@ -81,21 +95,20 @@ class NeuroEvolution:
         for _ in range(self._lambda):
             population.append(self.spawn_individual())
         return population
-    
+
     def spawn_individual(self):
-        network =  DiscreteActionMLPPolicy(
-                observation_shape=self.observation_shape,
-                num_actions=self.num_actions,
-                num_hidden_layers=2,
-            )
+        network = DiscreteActionMLPPolicy(
+            observation_shape=self.observation_shape,
+            num_actions=self.num_actions,
+            num_hidden_layers=2,
+        )
         spawned_individual = NeuroAgent(network=network)
 
         return spawned_individual
-        
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
-        
+
         features = self.feature_constructor(observation)
 
         shape = features.shape
@@ -135,9 +148,11 @@ class NeuroEvolution:
         mutated_chromosome = chromosome + noise
 
         return mutated_chromosome
-    
+
     @torch.no_grad()
-    def evaluate_fitness(self, policy:DiscreteActionMLPPolicy, average_over_episodes: int = 3):
+    def evaluate_fitness(
+        self, policy: DiscreteActionMLPPolicy, average_over_episodes: int = 3
+    ):
         sum_episode_return = 0.0
 
         for i in range(average_over_episodes):
@@ -163,43 +178,71 @@ class NeuroEvolution:
                 if agent.fitness is None:
                     agent_to_assess_fitness.append(agent)
 
-            fitness_scores = [self.evaluate_fitness(agent.network) for agent in agent_to_assess_fitness]
+            fitness_scores = [
+                self.evaluate_fitness(agent.network)
+                for agent in agent_to_assess_fitness
+            ]
 
             for agent, fitness in zip(agent_to_assess_fitness, fitness_scores):
                 agent.fitness = fitness
-            
+
                 if best_agent is None or agent.fitness > best_agent.fitness:
                     best_agent = agent
-                    
-                    if self.highest_possible_fitness is not None and best_agent.fitness >= self.highest_possible_fitness:
-                        self.logger.info(f"Stopping fitness reached: {best_agent.fitness}")
-                        self.summary_writer.add_scalar("Best_Agent_Fitness", best_agent.fitness, global_step=generation)
+
+                    if (
+                        self.highest_possible_fitness is not None
+                        and best_agent.fitness >= self.highest_possible_fitness
+                    ):
+                        self.logger.info(
+                            f"Stopping fitness reached: {best_agent.fitness}"
+                        )
+                        self.summary_writer.add_scalar(
+                            "Best_Agent_Fitness",
+                            best_agent.fitness,
+                            global_step=generation,
+                        )
                         return best_agent
-        
-            average_fitness = sum([agent.fitness for agent in self.population])/len(self.population)
-            self.logger.info(f"Generation: {generation}, Average Fitness: {average_fitness}")
-            self.summary_writer.add_scalar("Population_Average_Fitness", average_fitness, global_step=generation)
-            
+
+            average_fitness = sum([agent.fitness for agent in self.population]) / len(
+                self.population
+            )
+            self.logger.info(
+                f"Generation: {generation}, Average Fitness: {average_fitness}"
+            )
+            self.summary_writer.add_scalar(
+                "Population_Average_Fitness", average_fitness, global_step=generation
+            )
+
             if best_agent is not None:
                 self.logger.info(f"Best Agent Fitness: {best_agent.fitness}")
-                self.summary_writer.add_scalar("Best_Agent_Fitness", best_agent.fitness, global_step=generation)
-            
-                
-            #Select parents
-            sorted_population = sorted(self.population, key=lambda x: x.fitness, reverse=True)
-            parents = sorted_population[:self.mu]
+                self.summary_writer.add_scalar(
+                    "Best_Agent_Fitness", best_agent.fitness, global_step=generation
+                )
+
+            # Select parents
+            sorted_population = sorted(
+                self.population, key=lambda x: x.fitness, reverse=True
+            )
+            parents = sorted_population[: self.mu]
 
             self.population = deepcopy(parents)
 
             # Mutation
             for parent in parents:
-                for _ in range(self._lambda//self.mu):
-                    mutated_param_vector = self.mutate(network=parent.network, mean=self.mutation_mean, std=self.mutation_std)
+                for _ in range(self._lambda // self.mu):
+                    mutated_param_vector = self.mutate(
+                        network=parent.network,
+                        mean=self.mutation_mean,
+                        std=self.mutation_std,
+                    )
                     child = self.spawn_individual()
-                    NeuroEvolutionUtil.set_parameters_vector(child.network, mutated_param_vector)
+                    NeuroEvolutionUtil.set_parameters_vector(
+                        child.network, mutated_param_vector
+                    )
                     self.population.append(child)
 
         return best_agent
+
 
 if __name__ == "__main__":
     from itertools import product
@@ -214,7 +257,12 @@ if __name__ == "__main__":
     trained_agents = []
 
     for mutation_mean, mutation_std in mutation_rate_combinations:
-        algorithm = NeuroEvolution(env=env, stopping_fitness=500, mutation_mean=mutation_mean, mutation_std=mutation_std)
+        algorithm = NeuroEvolution(
+            env=env,
+            stopping_fitness=500,
+            mutation_mean=mutation_mean,
+            mutation_std=mutation_std,
+        )
         trained_agents.append(algorithm.train(num_generations=1000))
 
     eval_env = gym.make("CartPole-v1", render_mode="human")
@@ -232,7 +280,3 @@ if __name__ == "__main__":
         obs, reward, terminated, truncated, info = eval_env.step(action)
         episode_return += reward
         done = terminated or truncated
-
-
-
-

@@ -16,7 +16,6 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
         num_episodes: int = 5,
         epoch_eval_interval: Optional[int] = None,
         logger: Optional[logging.Logger] = None,
-        
     ):
         super().__init__(
             env=env,
@@ -26,7 +25,9 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
             epoch_eval_interval=epoch_eval_interval,
         )
 
-        self.logger = logger if logger is not None else logging.getLogger(self.__class__.__name__)
+        self.logger = (
+            logger if logger is not None else logging.getLogger(self.__class__.__name__)
+        )
 
     def evaluate_performance(self, *args, **kwargs):
         assert (
@@ -64,4 +65,7 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
         self.logger.info(f"Average episode reward: {avg_episode_return}")
         self.logger.info(f"Average episode length: {avg_episode_length}")
 
-        return {"Avg Episode Return":avg_episode_return, "Avg Episode Length":avg_episode_length}
+        return {
+            "Avg Episode Return": avg_episode_return,
+            "Avg Episode Length": avg_episode_length,
+        }

@@ -200,5 +200,7 @@ notebooks/*
 
 *test.py
 
+.idea/
+example_usage/*
 
 .gitignore

@@ -96,7 +96,7 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
     def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         if not force_functional_interface:
             return self.q_values
-        
+
         return lambda s, a: self.q_values[s][a]
 
     def set_policy(self, policy: BasePolicy, _type: str):

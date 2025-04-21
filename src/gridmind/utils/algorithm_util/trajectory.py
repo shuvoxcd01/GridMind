@@ -7,9 +7,13 @@ class Trajectory:
         self.rewards = list()
         self.additional_info = list()
 
-    def update_step(self, state, action, reward, timestep: Optional[int] = None, **kwargs):
+    def update_step(
+        self, state, action, reward, timestep: Optional[int] = None, **kwargs
+    ):
         if (timestep is None) or (timestep == len(self.state_actions)):
-            return self.record_step(state=state, action=action, reward=reward, kwargs=kwargs)
+            return self.record_step(
+                state=state, action=action, reward=reward, kwargs=kwargs
+            )
 
         assert timestep < len(self.state_actions) and timestep >= 0
         state_action = (state, action)

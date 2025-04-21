@@ -92,7 +92,7 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
     def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         if not force_functional_interface:
             return NeuralNetworkToTableWrapper(self.action_value_estimator)
-        
+
         return self.action_value_estimator
 
     def _get_policy(self):
