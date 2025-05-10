@@ -19,8 +19,7 @@ class MonteCarloES(BaseLearningAlgorithm):
         policy: Optional[BasePolicy] = None,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__(name="MCES")
-        self.env = env
+        super().__init__(name="MCES", env=env)
         self.num_actions = env.action_space.n
         self.actions = list(range(self.num_actions))
         self.policy = (

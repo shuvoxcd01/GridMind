@@ -18,7 +18,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
-        num_actions: int,
+        num_actions: Optional[int]= None,
         policy: Optional[DiscreteActionMLPPolicy] = None,
         value_estimator: Optional[BaseNNEstimator] = None,
         policy_step_size: float = 0.0001,
@@ -28,10 +28,9 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
     ):
-        super().__init__("OneStepActorCritic")
+        super().__init__("OneStepActorCritic", env)
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
-        self.env = env
         self.discount_factor = discount_factor
         self.clip_grads = clip_grads
         self.grad_clip_value = grad_clip_value
@@ -43,14 +42,14 @@ class OneStepActorCritic(BaseLearningAlgorithm):
             else self._determine_observation_shape()
         )
 
-        self.num_actions = num_actions
+        self.num_actions = self.env.action_space.n if num_actions is None else num_actions
 
         self.policy = (
             policy
             if policy is not None
             else DiscreteActionMLPPolicy(
                 observation_shape=observation_shape,
-                num_actions=num_actions,
+                num_actions=self.num_actions,
                 num_hidden_layers=2,
             )
         )
@@ -157,18 +156,34 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
                 if self.clip_grads:
                     # Clipping for value gradients
-                    value_norm = torch.sqrt(sum(grad.norm()**2 for grad in value_grads if grad is not None))
+                    value_norm = torch.sqrt(
+                        sum(
+                            grad.norm() ** 2 for grad in value_grads if grad is not None
+                        )
+                    )
                     if value_norm > self.grad_clip_value:
                         scaling_factor = self.grad_clip_value / value_norm
-                        value_grads = [grad * scaling_factor if grad is not None else None for grad in value_grads]
+                        value_grads = [
+                            grad * scaling_factor if grad is not None else None
+                            for grad in value_grads
+                        ]
 
                     self.logger.debug(f"Clipped value grads: {value_grads}")
 
                     # Clipping for policy gradients
-                    policy_norm = torch.sqrt(sum(grad.norm()**2 for grad in policy_grads if grad is not None))
+                    policy_norm = torch.sqrt(
+                        sum(
+                            grad.norm() ** 2
+                            for grad in policy_grads
+                            if grad is not None
+                        )
+                    )
                     if policy_norm > self.grad_clip_value:
                         scaling_factor = self.grad_clip_value / policy_norm
-                        policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
+                        policy_grads = [
+                            grad * scaling_factor if grad is not None else None
+                            for grad in policy_grads
+                        ]
 
                     self.logger.debug(f"Clipped policy grads: {policy_grads}")
 

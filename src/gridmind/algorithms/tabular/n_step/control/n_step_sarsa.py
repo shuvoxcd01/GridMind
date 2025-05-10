@@ -27,8 +27,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
     ) -> None:
-        super().__init__("N-Step-SARSA")
-        self.env = env
+        super().__init__("N-Step-SARSA", env=env)
         self.n = n
         self.num_actions = self.env.action_space.n
 

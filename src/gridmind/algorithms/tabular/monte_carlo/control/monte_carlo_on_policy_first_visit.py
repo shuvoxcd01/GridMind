@@ -8,8 +8,7 @@ import numpy as np
 
 class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
     def __init__(self, env: Env, policy: BasePolicy) -> None:
-        super().__init__(name="MonteCarloOnPolicyFirstVisit")
-        self.env = env
+        super().__init__(name="MonteCarloOnPolicyFirstVisit", env=env)
         self.policy = policy
         # ToDo: WIP
 
@@ -27,4 +26,3 @@ class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
-

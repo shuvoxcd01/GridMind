@@ -1,4 +1,4 @@
-from gridmind.algorithms.approximation.actor_critic.one_step_actor_critic import (
+from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import (
     OneStepActorCritic,
 )
 from gridmind.algorithms.tabular.monte_carlo.monte_carlo_exploring_start import (
@@ -35,7 +35,7 @@ agent = OneStepActorCritic(
 )
 
 
-agent.optimize_policy(num_episodes=10000)
+agent.optimize_policy(num_episodes=1000)
 env.close()
 
 

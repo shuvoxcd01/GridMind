@@ -1,4 +1,4 @@
-from gridmind.algorithms.approximation.actor_critic.one_step_actor_critic import OneStepActorCritic
+from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import OneStepActorCritic
 
 
 from gridmind.feature_construction.multi_hot import MultiHotEncoder

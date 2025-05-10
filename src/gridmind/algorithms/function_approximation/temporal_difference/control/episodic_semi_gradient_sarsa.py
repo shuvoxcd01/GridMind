@@ -26,9 +26,8 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         epsilon_decay: bool = True,
         feature_constructor: Callable = None,
     ):
-        super().__init__("Episodic-Semi-Gradient-SARSA")
+        super().__init__("Episodic-Semi-Gradient-SARSA", env=env)
         self.step_size = step_size
-        self.env = env
         self.discount_factor = discount_factor
 
         self.feature_constructor = feature_constructor
@@ -92,7 +91,7 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
     def _get_state_action_value_fn(self, force_functional_interface: bool = True):
         if not force_functional_interface:
             return NeuralNetworkToTableWrapper(self.action_value_estimator)
-        
+
         return self.action_value_estimator
 
     def _get_policy(self):

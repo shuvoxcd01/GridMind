@@ -17,7 +17,9 @@ class PolynomialFeatureConstructor:
         C = np.arange(0, n + 1)
         exponents = lambda k: np.array(list(itertools.product(C, repeat=k)))
 
-        self._feature_constuctor = lambda s: np.prod(np.power(s, exponents(s.size)), axis=1)
+        self._feature_constuctor = lambda s: np.prod(
+            np.power(s, exponents(s.size)), axis=1
+        )
 
     def __call__(self, state: Union[np.ndarray, numbers.Number], *args, **kwds):
         if isinstance(state, numbers.Number):
@@ -28,7 +30,7 @@ class PolynomialFeatureConstructor:
 
 
 if __name__ == "__main__":
-    state = np.array([2,2,3])
+    state = np.array([2, 2, 3])
     fc = PolynomialFeatureConstructor(n=1)
     features_1 = fc(state)
     features_2 = fc(state)

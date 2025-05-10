@@ -1,11 +1,13 @@
-from gridmind.policies.base_policy import BasePolicy
+from gridmind.policies.parameterized.base_parameterized_policy import (
+    BaseParameterizedPolicy,
+)
 from torch import nn
 import math
 import torch
 import torch.nn.functional as F
 
 
-class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
+class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
     def __init__(
         self,
         observation_shape: tuple,
@@ -15,8 +17,7 @@ class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
         out_features: int = 16,
         use_bias: bool = True,
     ):
-        nn.Module.__init__(self)
-        BasePolicy.__init__(self)
+        super().__init__(observation_shape=observation_shape, num_actions=num_actions)
 
         num_input_features = math.prod(observation_shape)
         self.num_hidden_layers = num_hidden_layers
@@ -54,7 +55,7 @@ class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
         )
 
     def forward(self, x):
-        x = x.view(-1)
+        # x = x.view(-1)
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
 
@@ -71,12 +72,21 @@ class DiscreteActionMLPPolicy(nn.Module, BasePolicy):
 
         return action
 
+    def get_actions(self, states):
+        action_probs = self.forward(states)
+
+        action_probs = F.softmax(action_probs, dim=-1)
+
+        actions = torch.multinomial(action_probs, num_samples=1)
+
+        return actions
+
     def get_action_probs(self, state, action):
         action_probs = self.forward(state)
 
         action_probs = F.softmax(action_probs, dim=-1)
 
         return action_probs[action]
-    
+
     def update(self, state, action, value):
         pass

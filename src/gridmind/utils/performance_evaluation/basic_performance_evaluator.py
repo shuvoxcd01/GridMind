@@ -14,15 +14,20 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
         policy_retriever_fn: Optional[Callable] = None,
         preprocessor_fn: Optional[Callable] = None,
         num_episodes: int = 5,
+        epoch_eval_interval: Optional[int] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         super().__init__(
             env=env,
             policy_retriever_fn=policy_retriever_fn,
             preprocessor_fn=preprocessor_fn,
             num_episodes=num_episodes,
+            epoch_eval_interval=epoch_eval_interval,
         )
 
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = (
+            logger if logger is not None else logging.getLogger(self.__class__.__name__)
+        )
 
     def evaluate_performance(self, *args, **kwargs):
         assert (
@@ -42,6 +47,7 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
             episode_length = 0
 
             while not done:
+                self.env.render()
                 observation = self.preprocessor_fn(observation)
                 action = policy.get_action(observation)
                 observation, reward, terminated, truncated, _ = self.env.step(action)
@@ -59,4 +65,7 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
         self.logger.info(f"Average episode reward: {avg_episode_return}")
         self.logger.info(f"Average episode length: {avg_episode_length}")
 
-        return avg_episode_return, avg_episode_length
+        return {
+            "Avg Episode Return": avg_episode_return,
+            "Avg Episode Length": avg_episode_length,
+        }

@@ -1,4 +1,4 @@
-from gridmind.env_wrappers.base_gym_wrapper import BaseGymWrapper
+from gridmind.wrappers.env_wrappers.base_gym_wrapper import BaseGymWrapper
 
 
 class NormalizedObservationWrapper(BaseGymWrapper):
