@@ -2,6 +2,7 @@ import logging
 import math
 import os
 import time
+from typing import Optional
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_r import (
     NeuroEvolution,
 )
@@ -11,10 +12,10 @@ from gridmind.algorithms.function_approximation.monte_carlo.control.reinforce_of
 from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import (
     GradientMonteCarloPrediction,
 )
-from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.utils.performance_evaluation.evo_rl_basic_performance_evaluator_r import (
     EvoRLBasicPerformanceEvaluator,
 )
+import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import trange
 
@@ -40,6 +41,7 @@ class EvoRL:
         population_size=10,
         num_collect_trajectories=100,
         feature_constructor=None,
+        summary_dir: Optional[str] = None,
     ):
         self.env = env
         self.name = "EvoRL"
@@ -87,8 +89,9 @@ class EvoRL:
         )
         self.performance_metric = "Avg Episode Return"
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.parent_tracker_filename = "parent_tracker.csv"
 
-        self._initialize_summary_writer()
+        self._initialize_summary_writer(summary_dir=summary_dir)
 
     def _initialize_summary_writer(self, summary_dir=None):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
@@ -105,7 +108,12 @@ class EvoRL:
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        with open("algorithm_config.txt", "w") as f:
+        self.parent_tracker_filepath = os.path.join(
+            log_dir, self.parent_tracker_filename
+        )
+
+        algorithm_config_file = os.path.join(log_dir, "algorithm_config.txt")
+        with open(algorithm_config_file, "w") as f:
             f.write(
                 f"RL Policy Step Size: {self.rl_policy_step_size}\n"
                 f"RL Value Step Size: {self.rl_value_step_size}\n"
@@ -183,12 +191,36 @@ class EvoRL:
 
             if rl_policy_fitness > evo_best_fitness:
                 self.logger.debug("Adding RL policy to the evolution population")
-                self.evolution_algorithm.add_inidvidual_from_policy(rl_policy)
+                self.evolution_algorithm.add_inidvidual_from_policy(
+                    rl_policy, name_prefix="rl_"
+                )
                 self.best_policy = rl_policy
             else:
                 self.best_policy = evo_best_policy
 
+            self._track_generation()
+
         return self.best_policy
+
+    def _track_generation(self):
+        population = self.evolution_algorithm.get_population()
+
+        log_rows = []
+
+        for agent in population:
+            agent_fitness = agent.fitness
+            if agent_fitness is None:
+                continue
+            agent_metadata = agent.get_metadata()
+            agent_metadata["running_generation"] = self.evolution_algorithm.generation
+
+            log_rows.append(agent_metadata)
+
+        df = pd.DataFrame(log_rows)
+        if os.path.exists(self.parent_tracker_filepath):
+            df.to_csv(self.parent_tracker_filepath, mode="a", index=False, header=False)
+        else:
+            df.to_csv(self.parent_tracker_filepath, mode="w", index=False, header=True)
 
     def _train_value_estimator(self, evo_best_policy, num_global_iter: int):
         self.logger.debug("Training value estimator")
@@ -242,8 +274,8 @@ if __name__ == "__main__":
             rl_policy_step_size=policy_lr,
             rl_value_step_size=value_lr,
             value_estimation_num_episodes_constant=2,
-            num_collect_trajectories=500,
-            rl_num_episodes=1000,
+            num_collect_trajectories=150,  # 500,
+            rl_num_episodes=250,  # 1000,
             value_estimation_step_size=value_lr,
         )
 
