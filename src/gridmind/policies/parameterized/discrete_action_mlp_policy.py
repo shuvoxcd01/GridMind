@@ -55,7 +55,7 @@ class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
         )
 
     def forward(self, x):
-        x = x.view(-1)
+        # x = x.view(-1)
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
 
@@ -71,6 +71,15 @@ class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
         action = torch.multinomial(action_probs, num_samples=1).detach().cpu().item()
 
         return action
+
+    def get_actions(self, states):
+        action_probs = self.forward(states)
+
+        action_probs = F.softmax(action_probs, dim=-1)
+
+        actions = torch.multinomial(action_probs, num_samples=1)
+
+        return actions
 
     def get_action_probs(self, state, action):
         action_probs = self.forward(state)
