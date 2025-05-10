@@ -167,7 +167,7 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def train(self, num_episodes: int, prediction_only: bool):
+    def train(self, num_episodes: int, prediction_only: bool, save_policy: bool = True):
         num_outer_iter = 1
         num_inner_iter = num_episodes
 
@@ -200,12 +200,13 @@ class BaseLearningAlgorithm(ABC):
                     self.logger.warning("Stopping training due to divergence.")
                     self.set_policy(policy_prev)
                     break
+        
+        if save_policy:
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-
-        if SAVE_DATA_DIR is not None:
-            saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
-            self.save_policy(saved_policy_dir)
+            if SAVE_DATA_DIR is not None:
+                saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+                self.save_policy(saved_policy_dir)
 
     def _report_all_metrics(self):
         try:

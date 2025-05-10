@@ -36,8 +36,7 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
         behavior_policy: Optional[BasePolicy] = None,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__(name="MCPolicyControl(off-policy)")
-        self.env = env
+        super().__init__(name="MCPolicyControl(off-policy)", env=env)
         self.num_actions = self.env.action_space.n
         self.actions = list(range(self.num_actions))
 
