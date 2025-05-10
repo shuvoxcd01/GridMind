@@ -43,7 +43,6 @@ class EvoRLBasicPerformanceEvaluator(BasePerformanceEvaluator):
             episode_length = 0
 
             while not done:
-                self.env.render()
                 observation = self.preprocessor_fn(observation)
                 action = policy.get_action(observation)
                 observation, reward, terminated, truncated, _ = self.env.step(action)
