@@ -37,6 +37,7 @@ class NeuroEvolution:
         num_trajectories: int = 100,
         stopping_fitness: Optional[float] = None,
         curate_trajectory: bool = True,
+        agent_name_prefix: str = "evo_",
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -58,6 +59,7 @@ class NeuroEvolution:
             else self._determine_observation_shape()
         )
         self.highest_fitness_possible = stopping_fitness
+        self.agent_name_prefix = agent_name_prefix
 
         self.num_actions = self.env.action_space.n
         self.best_agent = None
@@ -66,6 +68,8 @@ class NeuroEvolution:
         self.experience_buffer = (
             deque(maxlen=self.num_trajectories) if curate_trajectory else None
         )
+
+        self._generation = 0
 
         if population is None:
             self.population = self.initialize_population()
@@ -80,6 +84,10 @@ class NeuroEvolution:
             self._population_fitness is not None
         ), "Population fitness not found. Please train the algorithm first."
         return self._population_fitness
+
+    @property
+    def generation(self):
+        return self._generation
 
     def extract_policies_from_population(self):
         policies = []
@@ -97,8 +105,27 @@ class NeuroEvolution:
     def get_population(self):
         return self.population
 
-    def set_population_from_policies(self, population: List[DiscreteActionMLPPolicy]):
-        self.population = [NeuroAgent(network=network) for network in population]
+    def set_population_from_policies(
+        self,
+        population: List[DiscreteActionMLPPolicy],
+        generation: int = None,
+        parent_id: str = None,
+        name_prefix: str = None,
+    ):
+        if generation is None:
+            generation = self.generation
+        if name_prefix is None:
+            name_prefix = self.agent_name_prefix
+
+        self.population = [
+            NeuroAgent(
+                network=network,
+                starting_generation=generation,
+                parent_id=parent_id,
+                name_prefix=name_prefix,
+            )
+            for network in population
+        ]
 
     def set_population(self, population: List[NeuroAgent]):
         self.population = population
@@ -106,17 +133,48 @@ class NeuroEvolution:
     def add_individual(self, individual: NeuroAgent):
         self.population.append(individual)
 
-    def add_inidvidual_from_policy(self, policy: DiscreteActionMLPPolicy):
-        individual = NeuroAgent(network=policy)
+    def add_inidvidual_from_policy(
+        self,
+        policy: DiscreteActionMLPPolicy,
+        generation: int = None,
+        parent_id: str = None,
+        name_prefix: str = None,
+    ):
+        if generation is None:
+            generation = self.generation
+        if name_prefix is None:
+            name_prefix = self.agent_name_prefix
+
+        individual = NeuroAgent(
+            network=policy,
+            starting_generation=generation,
+            parent_id=parent_id,
+            name_prefix=name_prefix,
+        )
         self.population.append(individual)
 
-    def spawn_individual(self):
+    def spawn_individual(
+        self,
+        generation: int = None,
+        parent_id: str = None,
+        name_prefix: str = None,
+    ):
+        if generation is None:
+            generation = self.generation
+        if name_prefix is None:
+            name_prefix = self.agent_name_prefix
+
         network = DiscreteActionMLPPolicy(
             observation_shape=self.observation_shape,
             num_actions=self.num_actions,
             num_hidden_layers=2,
         )
-        spawned_individual = NeuroAgent(network=network)
+        spawned_individual = NeuroAgent(
+            network=network,
+            starting_generation=generation,
+            name_prefix=name_prefix,
+            parent_id=parent_id,
+        )
 
         return spawned_individual
 
@@ -287,11 +345,15 @@ class NeuroEvolution:
                         mean=self.mutation_mean,
                         std=self.mutation_std,
                     )
-                    child = self.spawn_individual()
+                    child = self.spawn_individual(
+                        parent_id=parent.id, generation=self._generation + 1
+                    )
                     NeuroEvolutionUtil.set_parameters_vector(
                         child.network, mutated_param_vector
                     )
                     self.population.append(child)
+
+            self._generation += 1
 
         best_policy = self.best_agent.network
         best_fitness = self.best_agent.fitness
