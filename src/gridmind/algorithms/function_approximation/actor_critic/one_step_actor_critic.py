@@ -18,7 +18,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
-        num_actions: int,
+        num_actions: Optional[int]= None,
         policy: Optional[DiscreteActionMLPPolicy] = None,
         value_estimator: Optional[BaseNNEstimator] = None,
         policy_step_size: float = 0.0001,
@@ -42,14 +42,14 @@ class OneStepActorCritic(BaseLearningAlgorithm):
             else self._determine_observation_shape()
         )
 
-        self.num_actions = num_actions
+        self.num_actions = self.env.action_space.n if num_actions is None else num_actions
 
         self.policy = (
             policy
             if policy is not None
             else DiscreteActionMLPPolicy(
                 observation_shape=observation_shape,
-                num_actions=num_actions,
+                num_actions=self.num_actions,
                 num_hidden_layers=2,
             )
         )
