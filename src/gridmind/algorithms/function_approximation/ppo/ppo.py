@@ -48,8 +48,7 @@ class PPO(BaseLearningAlgorithm):
             policy
             if policy is not None
             else ActorCriticPolicy(
-                observation_shape=observation_shape,
-                num_actions=num_actions,
+                env=self.env
             )
         )
         self.T = 500
