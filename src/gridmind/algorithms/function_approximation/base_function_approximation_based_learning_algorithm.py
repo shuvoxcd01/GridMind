@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numbers
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 import torch
@@ -38,5 +39,6 @@ class BaseFunctionApproximationBasedLearingAlgorithm(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
+    @abstractmethod
     def _train(self, num_episodes, prediction_only):
         raise NotImplementedError

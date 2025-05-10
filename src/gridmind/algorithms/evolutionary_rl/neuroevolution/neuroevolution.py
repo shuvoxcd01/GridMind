@@ -15,6 +15,7 @@ from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util impo
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
+from gridmind.utils.evo_util.selection import Selection
 from torch.utils.tensorboard import SummaryWriter
 
 from gymnasium import Env
@@ -220,10 +221,9 @@ class NeuroEvolution:
                 )
 
             # Select parents
-            sorted_population = sorted(
-                self.population, key=lambda x: x.fitness, reverse=True
+            parents = Selection.truncation_selection(
+                population=self.population, num_selection=self.mu
             )
-            parents = sorted_population[: self.mu]
 
             self.population = deepcopy(parents)
 
@@ -259,6 +259,8 @@ if __name__ == "__main__":
     for mutation_mean, mutation_std in mutation_rate_combinations:
         algorithm = NeuroEvolution(
             env=env,
+            mu=5,
+            _lambda=20,
             stopping_fitness=500,
             mutation_mean=mutation_mean,
             mutation_std=mutation_std,

@@ -31,7 +31,8 @@ class AvgReturnBasedDivergenceDetector(BaseDivergenceDetector):
             return False
 
         self.prev_avg_return = self.current_avg_return
-        avg_return, _ = self.performance_evaluator.evaluate_performance()
+        performance_result = self.performance_evaluator.evaluate_performance()
+        avg_return = performance_result["Avg Episode Return"]
         self.current_avg_return = avg_return
 
         if self.prev_avg_return is None:
