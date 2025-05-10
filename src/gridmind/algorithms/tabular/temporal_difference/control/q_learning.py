@@ -24,8 +24,7 @@ class QLearning(BaseLearningAlgorithm):
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
     ) -> None:
-        super().__init__("Q-Learning")
-        self.env = env
+        super().__init__("Q-Learning", env=env)
         self.num_actions = self.env.action_space.n
         self.epsilon_decay = epsilon_decay
 
@@ -94,3 +93,4 @@ class QLearning(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BaseQDerivedSoftPolicy):
         self.policy = policy
+

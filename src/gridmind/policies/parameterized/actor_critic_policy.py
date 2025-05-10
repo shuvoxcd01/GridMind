@@ -13,12 +13,12 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class ActorCriticPolicy(nn.Module, BasePolicy):
-    def __init__(self, envs):
+    def __init__(self, env):
         nn.Module.__init__(self)
         BasePolicy.__init__(self)
 
-        observation_shape = np.array(envs.observation_space.shape).prod()
-        num_actions = envs.action_space.n
+        observation_shape = np.array(env.observation_space.shape).prod()
+        num_actions = env.action_space.n
 
         self.critic = nn.Sequential(
             nn.Linear(observation_shape, 64),
