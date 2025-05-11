@@ -1,10 +1,11 @@
 from copy import deepcopy
 import logging
-import multiprocessing
+from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
+from torch import nn
 import numbers
 import os
 import time
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Type, Union
 
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import (
@@ -35,19 +36,20 @@ class QAssistedNeuroEvolution:
         self,
         env: Env,
         population: Optional[
-            Union[List[DiscreteActionMLPPolicy], List[NeuroAgent]]
+            Union[List[BaseParameterizedPolicy], List[NeuroAgent]]
         ] = None,
-        feature_constructor: Callable = None,
+        policy_class: Type[BaseParameterizedPolicy] = DiscreteActionMLPPolicy,
+        policy_creator: Optional[Callable] = None,
+        feature_constructor: Optional[Callable] = None,
         mu: int = 150,
         _lambda: int = 1000,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
-        num_processes: Optional[int] = None,
-        num_trajectories: int = 100,
         stopping_score: Optional[float] = None,
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
         replay_buffer_capacity: Optional[int] = None,
+        q_network:Optional[nn.Module] = None,
         q_learner: Optional[DeepQLearningWithExperienceReplay] = None,
         k: int = 25,
         q_learner_batch_size: int = 256,
@@ -64,11 +66,6 @@ class QAssistedNeuroEvolution:
         self._lambda = _lambda
         self.mutation_mean = mutation_mean
         self.mutation_std = mutation_std
-        self.num_processes = (
-            num_processes
-            if num_processes is not None
-            else (multiprocessing.cpu_count() // 2)
-        )
         self.curate_trajectory = curate_trajectory
         self.feature_constructor = feature_constructor
         self.observation_shape = (
@@ -82,11 +79,12 @@ class QAssistedNeuroEvolution:
         self.num_actions = self.env.action_space.n
         self.best_agent = None
         self._population_fitness = None
-        self.num_trajectories = num_trajectories
         self.k = k
 
         self._generation = 0
-
+        self.policy_class = policy_class
+        self.policy_creator = policy_creator
+        
         if population is None:
             self.population = self.initialize_population()
         elif isinstance(population[0], DiscreteActionMLPPolicy):
@@ -94,9 +92,11 @@ class QAssistedNeuroEvolution:
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
+       
+
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self.q_learner_batch_size = q_learner_batch_size
-
+        self.q_network = q_network
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
                 env=self.env,
@@ -105,6 +105,7 @@ class QAssistedNeuroEvolution:
                 batch_size=self.q_learner_batch_size,
                 epsilon_decay=False,
                 feature_constructor=feature_constructor,
+                q_network=self.q_network,
             )
             if q_learner is None
             else q_learner
@@ -229,11 +230,13 @@ class QAssistedNeuroEvolution:
         if name_prefix is None:
             name_prefix = self.agent_name_prefix
 
-        network = DiscreteActionMLPPolicy(
-            observation_shape=self.observation_shape,
-            num_actions=self.num_actions,
-            num_hidden_layers=2,
-        )
+        if self.policy_creator is not None:
+            network = self.policy_creator()
+        else:    
+            network = self.policy_class(
+                observation_shape=self.observation_shape,
+                num_actions=self.num_actions,
+            )
         spawned_individual = NeuroAgent(
             network=network,
             starting_generation=generation,
