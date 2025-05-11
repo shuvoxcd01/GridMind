@@ -9,6 +9,7 @@ from gridmind.utils.algorithm_util.simple_replay_buffer import SimpleReplayBuffe
 from gridmind.value_estimators.action_value_estimators.q_network import QNetwork
 from gymnasium import Env
 import torch
+from torch import nn
 from tqdm import trange
 
 
@@ -16,7 +17,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
     def __init__(
         self,
         env: Env,
-        q_network: Optional[QNetwork] = None,
+        q_network: Optional[nn.Module] = None,
         step_size: float = 0.0001,
         discount_factor: float = 0.99,
         batch_size: int = 32,
