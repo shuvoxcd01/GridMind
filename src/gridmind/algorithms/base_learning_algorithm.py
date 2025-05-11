@@ -200,7 +200,7 @@ class BaseLearningAlgorithm(ABC):
                     self.logger.warning("Stopping training due to divergence.")
                     self.set_policy(policy_prev)
                     break
-        
+
         if save_policy:
             env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 

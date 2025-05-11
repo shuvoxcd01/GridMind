@@ -1,7 +1,9 @@
 from typing import Optional, Type, Union
 import uuid
 
-from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
+from gridmind.policies.parameterized.base_parameterized_policy import (
+    BaseParameterizedPolicy,
+)
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )

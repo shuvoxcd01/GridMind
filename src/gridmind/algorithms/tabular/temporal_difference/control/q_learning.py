@@ -93,4 +93,3 @@ class QLearning(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BaseQDerivedSoftPolicy):
         self.policy = policy
-
