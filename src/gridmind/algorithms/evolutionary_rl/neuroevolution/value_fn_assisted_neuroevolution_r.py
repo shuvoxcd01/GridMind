@@ -1,6 +1,8 @@
 from copy import deepcopy
 import logging
-from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
+from gridmind.policies.parameterized.base_parameterized_policy import (
+    BaseParameterizedPolicy,
+)
 from torch import nn
 import numbers
 import os
@@ -49,7 +51,7 @@ class QAssistedNeuroEvolution:
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
         replay_buffer_capacity: Optional[int] = None,
-        q_network:Optional[nn.Module] = None,
+        q_network: Optional[nn.Module] = None,
         q_learner: Optional[DeepQLearningWithExperienceReplay] = None,
         k: int = 25,
         q_learner_batch_size: int = 256,
@@ -57,6 +59,8 @@ class QAssistedNeuroEvolution:
         summary_dir: Optional[str] = None,
         train_q_learner: bool = True,
         num_elites: int = 5,
+        score_evaluation_num_episodes: int = 10,
+        reevaluate_agent_score: bool = False,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
@@ -84,7 +88,7 @@ class QAssistedNeuroEvolution:
         self._generation = 0
         self.policy_class = policy_class
         self.policy_creator = policy_creator
-        
+
         if population is None:
             self.population = self.initialize_population()
         elif isinstance(population[0], DiscreteActionMLPPolicy):
@@ -92,10 +96,14 @@ class QAssistedNeuroEvolution:
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
-       
-
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self.q_learner_batch_size = q_learner_batch_size
+        self.replay_buffer_minimum_size = (
+            min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2)
+            if replay_buffer_capacity is not None
+            else 100 * self.q_learner_batch_size
+        )
+
         self.q_network = q_network
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
@@ -115,6 +123,8 @@ class QAssistedNeuroEvolution:
         self.top_k = None
         self.elites = []
         self.num_elites = num_elites
+        self.score_evaluation_num_episodes = score_evaluation_num_episodes
+        self.reevaluate_agent_score = reevaluate_agent_score
 
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
@@ -232,7 +242,7 @@ class QAssistedNeuroEvolution:
 
         if self.policy_creator is not None:
             network = self.policy_creator()
-        else:    
+        else:
             network = self.policy_class(
                 observation_shape=self.observation_shape,
                 num_actions=self.num_actions,
@@ -300,12 +310,10 @@ class QAssistedNeuroEvolution:
         return mutated_chromosome
 
     @torch.no_grad
-    def evaluate_score(
-        self, policy: DiscreteActionMLPPolicy, average_over_episodes: int = 10
-    ):
+    def evaluate_score(self, policy: DiscreteActionMLPPolicy):
         sum_episode_return = 0.0
 
-        for i in range(average_over_episodes):
+        for i in range(self.score_evaluation_num_episodes):
             obs, info = self.env.reset()
             done = False
 
@@ -326,7 +334,7 @@ class QAssistedNeuroEvolution:
                 )
                 obs = next_obs
 
-        return sum_episode_return / average_over_episodes
+        return sum_episode_return / self.score_evaluation_num_episodes
 
     @torch.no_grad
     def evaluate_fitness_with_q_fn(
@@ -356,6 +364,10 @@ class QAssistedNeuroEvolution:
         if num_minimum_samples is None:
             num_minimum_samples = self.q_learner_batch_size
 
+        if len(self.replay_buffer) == self.replay_buffer.capacity:
+            self.logger.debug(f"Replay buffer is full. Popping elements.")
+            self.replay_buffer.pop(num_elements=num_minimum_samples)
+
         replay_buffer_size_prev = self.replay_buffer.size()
         samples_added = 0
 
@@ -379,7 +391,7 @@ class QAssistedNeuroEvolution:
             self.logger.debug("Population is None. Initializing population.")
             self.population = self.initialize_population()
 
-        while self.replay_buffer.size() < 100 * self.q_learner_batch_size:
+        while self.replay_buffer.size() < self.replay_buffer_minimum_size:
             self.train_q_fn(selection_fn=Selection.random_selection, assign_score=False)
 
         for generation in trange(num_generations):
@@ -409,11 +421,12 @@ class QAssistedNeuroEvolution:
                 population=self.population, num_selection=self.k
             )
             for agent in self.top_k:
-                self.logger.info(f"Evaluating agent {agent.name}")
-                agent.score = self.evaluate_score(policy=agent.network)
-                self.logger.info(
-                    f"Evaluated agent {agent.name} score: {agent.score}"
-                )
+                if agent.score is None or self.reevaluate_agent_score:
+                    self.logger.info(f"Evaluating agent {agent.name}")
+                    agent.score = self.evaluate_score(policy=agent.network)
+                    self.logger.info(
+                        f"Evaluated agent {agent.name} score: {agent.score}"
+                    )
 
                 if len(self.elites) < self.num_elites:
                     self.elites.append(agent)
@@ -427,7 +440,6 @@ class QAssistedNeuroEvolution:
                                 f"Elite agent {agent.name} replaced agent {elite.name}"
                             )
                             break
-                    
 
                 if (
                     self.best_agent is None
@@ -436,9 +448,7 @@ class QAssistedNeuroEvolution:
                 ):
                     self.best_agent = agent
                     self.logger.info(f"Best Agent Score: {self.best_agent.score}")
-                    self.logger.info(
-                        f"Best Agent Fitness: {self.best_agent.fitness}"
-                    )
+                    self.logger.info(f"Best Agent Fitness: {self.best_agent.fitness}")
 
                     if self.summary_writer is not None:
                         self.summary_writer.add_scalar(
@@ -457,18 +467,16 @@ class QAssistedNeuroEvolution:
                     self.highest_score_possible is not None
                     and self.best_agent.score >= self.highest_score_possible
                 ):
-                    self.logger.info(
-                        f"Stopping score reached: {self.best_agent.score}"
-                    )
+                    self.logger.info(f"Stopping score reached: {self.best_agent.score}")
 
                     return self.best_agent
 
-            
             self._record_top_k_metrics(generation)
             self._record_elites_metrics(generation)
 
             if generation % 10 == 0:
                 q_derived_policy = self.q_learner.get_policy()
+                self.logger.debug("Evaluating Q Derived Policy")
                 q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
                 self.logger.info(f"Q Derived Policy Score: {q_derived_policy_score}")
 
@@ -492,8 +500,7 @@ class QAssistedNeuroEvolution:
             # Add elites to parents if not already present
             for elite in self.elites:
                 if elite.id not in [parent.id for parent in parents]:
-                    parents.append(elite)                    
-
+                    parents.append(elite)
 
             self.population = deepcopy(parents)
 
@@ -514,48 +521,52 @@ class QAssistedNeuroEvolution:
         return self.best_agent
 
     def _record_top_k_metrics(self, generation):
-        top_k_avg_fitness = sum([agent.fitness for agent in self.top_k]) / len(self.top_k)
+        top_k_avg_fitness = sum([agent.fitness for agent in self.top_k]) / len(
+            self.top_k
+        )
         self.logger.info(
-                f"Generation: {generation}, Top K Average Fitness: {top_k_avg_fitness}"
-            )
+            f"Generation: {generation}, Top K Average Fitness: {top_k_avg_fitness}"
+        )
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
-                    "Top_K_Average_Fitness",
-                    top_k_avg_fitness,
-                    global_step=generation,
-                )
+                "Top_K_Average_Fitness",
+                top_k_avg_fitness,
+                global_step=generation,
+            )
         top_k_avg_score = sum([agent.score for agent in self.top_k]) / len(self.top_k)
         self.logger.info(
-                f"Generation: {generation}, Top K Average Score: {top_k_avg_score}"
-            )
+            f"Generation: {generation}, Top K Average Score: {top_k_avg_score}"
+        )
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
-                    "Top_K_Average_Score",
-                    top_k_avg_score,
-                    global_step=generation,
-                )
+                "Top_K_Average_Score",
+                top_k_avg_score,
+                global_step=generation,
+            )
 
     def _record_elites_metrics(self, generation):
-        elite_avg_fitness = sum([agent.fitness for agent in self.elites]) / len(self.elites)
+        elite_avg_fitness = sum([agent.fitness for agent in self.elites]) / len(
+            self.elites
+        )
         self.logger.info(
-                f"Generation: {generation}, Elite Average Fitness: {elite_avg_fitness}"
-            )
+            f"Generation: {generation}, Elite Average Fitness: {elite_avg_fitness}"
+        )
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
-                    "Elite_Average_Fitness",
-                    elite_avg_fitness,
-                    global_step=generation,
-                )
+                "Elite_Average_Fitness",
+                elite_avg_fitness,
+                global_step=generation,
+            )
         elite_avg_score = sum([agent.score for agent in self.elites]) / len(self.elites)
         self.logger.info(
-                f"Generation: {generation}, Elite Average Score: {elite_avg_score}"
-            )
+            f"Generation: {generation}, Elite Average Score: {elite_avg_score}"
+        )
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
-                    "Elite_Average_Score",
-                    elite_avg_score,
-                    global_step=generation,
-                )
+                "Elite_Average_Score",
+                elite_avg_score,
+                global_step=generation,
+            )
 
 
 if __name__ == "__main__":
@@ -566,11 +577,18 @@ if __name__ == "__main__":
     #     map_name="4x4",
     #     is_slippery=False,
     # )
-    algorithm = QAssistedNeuroEvolution(env=env, write_summary=True, stopping_score=500)
 
-    best_agent = algorithm.train(
-        num_generations=10000
+    policy_creator = lambda: DiscreteActionMLPPolicy(
+        observation_shape=env.observation_space.shape,
+        num_actions=env.action_space.n,
+        num_hidden_layers=4,
     )
+
+    algorithm = QAssistedNeuroEvolution(
+        env=env, policy_creator=policy_creator, write_summary=True, stopping_score=500
+    )
+
+    best_agent = algorithm.train(num_generations=10000)
 
     # eval_env = gym.make(
     #     "FrozenLake-v1",
