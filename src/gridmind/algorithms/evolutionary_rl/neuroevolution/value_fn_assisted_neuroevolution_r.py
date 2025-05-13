@@ -52,6 +52,7 @@ class QAssistedNeuroEvolution:
         agent_name_prefix: str = "evo_",
         replay_buffer_capacity: Optional[int] = None,
         q_network: Optional[nn.Module] = None,
+        q_network_preferred_device: Optional[str] = None,
         q_learner: Optional[DeepQLearningWithExperienceReplay] = None,
         k: int = 25,
         q_learner_batch_size: int = 256,
@@ -61,6 +62,7 @@ class QAssistedNeuroEvolution:
         num_elites: int = 5,
         score_evaluation_num_episodes: int = 10,
         reevaluate_agent_score: bool = False,
+        render: bool = False,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
@@ -103,8 +105,22 @@ class QAssistedNeuroEvolution:
             if replay_buffer_capacity is not None
             else 100 * self.q_learner_batch_size
         )
+        if q_network_preferred_device is not None:
+            self.q_network_preferred_device = q_network_preferred_device
+        else:
+            self.q_network_preferred_device = (
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
 
-        self.q_network = q_network
+        self.logger.info(f"Q Network preferred device: {self.q_network_preferred_device}")
+
+        assert q_network is None or q_learner is None, (
+            "Please provide either a q_network or a q_learner, not both."
+        )
+
+
+        
+
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
                 env=self.env,
@@ -113,11 +129,13 @@ class QAssistedNeuroEvolution:
                 batch_size=self.q_learner_batch_size,
                 epsilon_decay=False,
                 feature_constructor=feature_constructor,
-                q_network=self.q_network,
+                q_network=q_network,
+                device=self.q_network_preferred_device,
             )
             if q_learner is None
             else q_learner
         )
+
         self.train_q_learner = train_q_learner
         self.best_agent = None
         self.top_k = None
@@ -347,7 +365,7 @@ class QAssistedNeuroEvolution:
         actions = policy.get_actions(observations)
 
         # Compute Q-values
-        q_values = self.q_learner.predict(observations).gather(1, actions).squeeze()
+        q_values = self.q_learner.predict(observations).to("cpu").gather(1, actions).squeeze()
 
         # Compute fitness as the mean Q-value
         fitness = q_values.mean().item()
@@ -571,12 +589,6 @@ class QAssistedNeuroEvolution:
 
 if __name__ == "__main__":
     env = gym.make("CartPole-v1")
-    # env = gym.make(
-    #     "FrozenLake-v1",
-    #     desc=None,
-    #     map_name="4x4",
-    #     is_slippery=False,
-    # )
 
     policy_creator = lambda: DiscreteActionMLPPolicy(
         observation_shape=env.observation_space.shape,

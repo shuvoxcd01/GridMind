@@ -6,6 +6,7 @@ from gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_policy im
     QNetworkDerivedEpsilonGreedyPolicy,
 )
 from gridmind.utils.algorithm_util.simple_replay_buffer import SimpleReplayBuffer
+from gridmind.value_estimators.action_value_estimators import q_network
 from gridmind.value_estimators.action_value_estimators.q_network import QNetwork
 from gymnasium import Env
 import torch
@@ -25,6 +26,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         feature_constructor: Optional[Callable] = None,
         summary_dir=None,
         write_summary=True,
+        device: Optional[str] = None,
     ):
         super().__init__(
             name="DeepQLearning",
@@ -40,7 +42,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.summary_writer = None
-
+        self.device = device if device is not None else "cuda" if torch.cuda.is_available() else "cpu"
         self.q_network = (
             q_network
             if q_network is not None
@@ -50,7 +52,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
                 num_actions=self.num_actions,
             )
         )
-
+        self.q_network.to(self.device)
         self.optimizer = torch.optim.Adam(
             self.q_network.parameters(), lr=self.step_size
         )
@@ -65,7 +67,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
 
     def predict(self, observations):
         """Predict the Q-values for the given observations."""
-        observations = self._preprocess(observations)
+        observations = self._preprocess(observations).to(self.device)
         with torch.no_grad():
             q_values = self.q_network(observations)
         return q_values
@@ -83,12 +85,12 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
             )
 
             # Convert to tensors and perform training step
-            observations = self._preprocess(observations)
-            next_observations = self._preprocess(next_observations)
+            observations = self._preprocess(observations).to(self.device)
+            next_observations = self._preprocess(next_observations).to(self.device)
 
-            rewards = torch.from_numpy(rewards).float()
-            actions = torch.from_numpy(actions)
-            terminated = torch.from_numpy(terminated).float()
+            rewards = torch.from_numpy(rewards).float().to(self.device)
+            actions = torch.from_numpy(actions).to(self.device)
+            terminated = torch.from_numpy(terminated).float().to(self.device)
 
             # Compute target Q-values
             target_q_values = (
