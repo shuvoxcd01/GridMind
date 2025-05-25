@@ -62,7 +62,6 @@ class QAssistedNeuroEvolution:
         num_elites: int = 5,
         score_evaluation_num_episodes: int = 10,
         reevaluate_agent_score: bool = False,
-        render: bool = False,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.INFO)
@@ -118,8 +117,6 @@ class QAssistedNeuroEvolution:
             "Please provide either a q_network or a q_learner, not both."
         )
 
-
-        
 
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
@@ -586,8 +583,72 @@ class QAssistedNeuroEvolution:
                 global_step=generation,
             )
 
+    def save_q_network(self, save_dir: str):
+        self.q_learner.save_q_network(directory=save_dir)
+
+    def load_q_network(self, save_dir: str):
+        self.q_learner.load_q_network(directory=save_dir)
+
+    def save_best_agent_network(self, save_dir: str, state_dict_only: bool = False):
+        if self.best_agent is None:
+            raise ValueError("Best agent not found. Please train the algorithm first.")
+        network_name =  "best_agent_network.pth"
+        agent_network = self.best_agent.network
+
+        self.save_agent_network(save_dir, state_dict_only, network_name, agent_network)
+
+    def load_best_agent_network(self, save_dir: str, state_dict_only: bool = False):
+        if self.best_agent is None:
+            raise ValueError("Best agent must be set before loading the network.")
+        
+        network_name = "best_agent_network.pth"
+        path = os.path.join(save_dir, network_name)
+
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Best agent network file not found: {path}")
+        
+        agent = self.best_agent
+        self.load_agent_network(agent, path, state_dict_only)
+
+    def load_agent_network(self,agent:NeuroAgent, path:str, state_dict_only:bool = False):  
+        if state_dict_only:
+            if agent.network is None:
+                raise ValueError("Agent network is None. Cannot load state dict.")
+            
+            # Load only the state dict
+            agent.network.load_state_dict(torch.load(path))
+        else:
+            # Load the entire model
+            agent.network = torch.load(path)  
+
+    def save_population_networks(self, save_dir: str, state_dict_only: bool = False):
+        if self.population is None:
+            raise ValueError("Population not found. Please train the algorithm first.")
+
+        save_dir = os.path.join(save_dir, "population_networks")
+        os.makedirs(save_dir, exist_ok=True)
+
+        for i, agent in enumerate(self.population):
+            network_name = f"agent_{i}_network.pth"
+            agent_network = agent.network
+            self.save_agent_network(
+                save_dir, state_dict_only=state_dict_only, network_name=network_name, agent_network=agent_network
+            )
+
+    def save_agent_network(self, save_dir, state_dict_only, network_name, agent_network):
+        os.makedirs(save_dir, exist_ok=True)
+        path = os.path.join(save_dir, network_name)
+
+        if state_dict_only:
+            torch.save(agent_network.state_dict(), path)
+        else:
+            # Save the entire model
+            torch.save(agent_network, path)
+
+
 
 if __name__ == "__main__":
+    
     env = gym.make("CartPole-v1")
 
     policy_creator = lambda: DiscreteActionMLPPolicy(
@@ -597,21 +658,23 @@ if __name__ == "__main__":
     )
 
     algorithm = QAssistedNeuroEvolution(
-        env=env, policy_creator=policy_creator, write_summary=True, stopping_score=500
+        env=env, policy_creator=policy_creator, write_summary=True, stopping_score=500,
     )
 
-    best_agent = algorithm.train(num_generations=10000)
+    algorithm.train(num_generations=10)
+    env_name = env.spec.id if env.spec is not None else "unknown"
+    algorithm_name = algorithm.name
+    q_network_save_dir = os.path.join(SAVE_DATA_DIR, env_name, algorithm_name, "q_network")
+    best_agent_network_save_dir = os.path.join(SAVE_DATA_DIR,env_name, algorithm_name, "best_agent_network")
 
-    # eval_env = gym.make(
-    #     "FrozenLake-v1",
-    #     desc=None,
-    #     map_name="4x4",
-    #     is_slippery=False,
-    #     render_mode="human",
-    # )
+    algorithm.save_q_network(save_dir=q_network_save_dir)
+    algorithm.save_best_agent_network(save_dir=best_agent_network_save_dir)
+
     eval_env = gym.make("CartPole-v1", render_mode="human")
 
-    policy = best_agent.network
+    # best_agent = algorithm.get_best(unwrapped=False)
+
+    policy = algorithm.get_best(unwrapped=True)
 
     obs, info = eval_env.reset()
     done = False
