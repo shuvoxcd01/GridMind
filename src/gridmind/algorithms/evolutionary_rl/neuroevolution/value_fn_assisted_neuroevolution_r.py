@@ -62,9 +62,12 @@ class QAssistedNeuroEvolution:
         num_elites: int = 5,
         score_evaluation_num_episodes: int = 10,
         reevaluate_agent_score: bool = False,
+        render: bool = False,
+        evaluate_q_derived_policy: bool = True,
+
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         self.name = "QAssistedNeuroEvolution"
         self.env = env
         self.mu = mu
@@ -134,6 +137,7 @@ class QAssistedNeuroEvolution:
         )
 
         self.train_q_learner = train_q_learner
+        self.evaluate_q_derived_policy = evaluate_q_derived_policy
         self.best_agent = None
         self.top_k = None
         self.elites = []
@@ -489,7 +493,7 @@ class QAssistedNeuroEvolution:
             self._record_top_k_metrics(generation)
             self._record_elites_metrics(generation)
 
-            if generation % 10 == 0:
+            if generation % 10 == 0 and self.evaluate_q_derived_policy:
                 q_derived_policy = self.q_learner.get_policy()
                 self.logger.debug("Evaluating Q Derived Policy")
                 q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
