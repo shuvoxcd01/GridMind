@@ -2,12 +2,15 @@ from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroe
 from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning_experience_r import DeepQLearningWithExperienceReplay
 from gridmind.policies.parameterized.atari_policy import AtariPolicy
 from gridmind.value_estimators.action_value_estimators.atari_deep_q_estimator import AtariDQN
+from gridmind.wrappers.env_wrappers.idle_truncation_wrapper import IdleAgentTruncationWrapper
 import gymnasium as gym
 from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
 import ale_py
 
 gym.register_envs(ale_py)
 env = gym.make('ALE/Breakout-v5', frameskip=1)
+env = IdleAgentTruncationWrapper(env=env)
+
 env = AtariPreprocessing(
             env,
             noop_max=10, frame_skip=4, terminal_on_life_loss=True,
