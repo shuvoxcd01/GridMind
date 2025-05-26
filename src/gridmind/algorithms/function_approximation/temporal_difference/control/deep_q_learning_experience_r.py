@@ -43,7 +43,11 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.summary_writer = None
-        self.device = device if device is not None else "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = (
+            device
+            if device is not None
+            else "cuda" if torch.cuda.is_available() else "cpu"
+        )
         self.q_network = (
             q_network
             if q_network is not None
@@ -125,7 +129,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         )
 
         return policy
-    
+
     def save_q_network(self, directory: str, state_dict_only: bool = False):
         """Save the Q-network."""
         os.makedirs(directory, exist_ok=True)
@@ -141,14 +145,13 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         path = os.path.join(directory, "q_network.pth")
         if not os.path.exists(path):
             raise FileNotFoundError(f"Q-network file not found: {path}")
-        
+
         if state_dict_only:
             self.q_network.load_state_dict(torch.load(path))
         else:
             # Load the entire model
             self.q_network = torch.load(path)
-        
+
         self.q_network.to(self.device)
 
         return self.q_network
-

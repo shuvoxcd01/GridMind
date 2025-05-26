@@ -64,7 +64,6 @@ class QAssistedNeuroEvolution:
         reevaluate_agent_score: bool = False,
         render: bool = False,
         evaluate_q_derived_policy: bool = True,
-
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -114,12 +113,13 @@ class QAssistedNeuroEvolution:
                 "cuda" if torch.cuda.is_available() else "cpu"
             )
 
-        self.logger.info(f"Q Network preferred device: {self.q_network_preferred_device}")
-
-        assert q_network is None or q_learner is None, (
-            "Please provide either a q_network or a q_learner, not both."
+        self.logger.info(
+            f"Q Network preferred device: {self.q_network_preferred_device}"
         )
 
+        assert (
+            q_network is None or q_learner is None
+        ), "Please provide either a q_network or a q_learner, not both."
 
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
@@ -366,7 +366,9 @@ class QAssistedNeuroEvolution:
         actions = policy.get_actions(observations)
 
         # Compute Q-values
-        q_values = self.q_learner.predict(observations).to("cpu").gather(1, actions).squeeze()
+        q_values = (
+            self.q_learner.predict(observations).to("cpu").gather(1, actions).squeeze()
+        )
 
         # Compute fitness as the mean Q-value
         fitness = q_values.mean().item()
@@ -498,8 +500,24 @@ class QAssistedNeuroEvolution:
                 self.logger.debug("Evaluating Q Derived Policy")
                 q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
                 self.logger.info(f"Q Derived Policy Score: {q_derived_policy_score}")
-                self.save_q_network(save_dir=os.path.join(SAVE_DATA_DIR, env_name, algorithm_name,"q_networks", f"generation_{generation}"))
-                self.save_best_agent_network(save_dir=os.path.join(SAVE_DATA_DIR,env_name, algorithm_name, "best_agent_networks", f"generation_{generation}"))
+                self.save_q_network(
+                    save_dir=os.path.join(
+                        SAVE_DATA_DIR,
+                        env_name,
+                        algorithm_name,
+                        "q_networks",
+                        f"generation_{generation}",
+                    )
+                )
+                self.save_best_agent_network(
+                    save_dir=os.path.join(
+                        SAVE_DATA_DIR,
+                        env_name,
+                        algorithm_name,
+                        "best_agent_networks",
+                        f"generation_{generation}",
+                    )
+                )
 
                 if self.summary_writer is not None:
                     self.summary_writer.add_scalar(
@@ -598,7 +616,7 @@ class QAssistedNeuroEvolution:
     def save_best_agent_network(self, save_dir: str, state_dict_only: bool = False):
         if self.best_agent is None:
             raise ValueError("Best agent not found. Please train the algorithm first.")
-        network_name =  "best_agent_network.pth"
+        network_name = "best_agent_network.pth"
         agent_network = self.best_agent.network
 
         self.save_agent_network(save_dir, state_dict_only, network_name, agent_network)
@@ -606,26 +624,28 @@ class QAssistedNeuroEvolution:
     def load_best_agent_network(self, save_dir: str, state_dict_only: bool = False):
         if self.best_agent is None:
             raise ValueError("Best agent must be set before loading the network.")
-        
+
         network_name = "best_agent_network.pth"
         path = os.path.join(save_dir, network_name)
 
         if not os.path.exists(path):
             raise FileNotFoundError(f"Best agent network file not found: {path}")
-        
+
         agent = self.best_agent
         self.load_agent_network(agent, path, state_dict_only)
 
-    def load_agent_network(self,agent:NeuroAgent, path:str, state_dict_only:bool = False):  
+    def load_agent_network(
+        self, agent: NeuroAgent, path: str, state_dict_only: bool = False
+    ):
         if state_dict_only:
             if agent.network is None:
                 raise ValueError("Agent network is None. Cannot load state dict.")
-            
+
             # Load only the state dict
             agent.network.load_state_dict(torch.load(path))
         else:
             # Load the entire model
-            agent.network = torch.load(path)  
+            agent.network = torch.load(path)
 
     def save_population_networks(self, save_dir: str, state_dict_only: bool = False):
         if self.population is None:
@@ -638,10 +658,15 @@ class QAssistedNeuroEvolution:
             network_name = f"agent_{i}_network.pth"
             agent_network = agent.network
             self.save_agent_network(
-                save_dir, state_dict_only=state_dict_only, network_name=network_name, agent_network=agent_network
+                save_dir,
+                state_dict_only=state_dict_only,
+                network_name=network_name,
+                agent_network=agent_network,
             )
 
-    def save_agent_network(self, save_dir, state_dict_only, network_name, agent_network):
+    def save_agent_network(
+        self, save_dir, state_dict_only, network_name, agent_network
+    ):
         os.makedirs(save_dir, exist_ok=True)
         path = os.path.join(save_dir, network_name)
 
@@ -652,9 +677,8 @@ class QAssistedNeuroEvolution:
             torch.save(agent_network, path)
 
 
-
 if __name__ == "__main__":
-    
+
     env = gym.make("CartPole-v1")
 
     policy_creator = lambda: DiscreteActionMLPPolicy(
@@ -664,14 +688,21 @@ if __name__ == "__main__":
     )
 
     algorithm = QAssistedNeuroEvolution(
-        env=env, policy_creator=policy_creator, write_summary=True, stopping_score=500,
+        env=env,
+        policy_creator=policy_creator,
+        write_summary=True,
+        stopping_score=500,
     )
 
     algorithm.train(num_generations=10)
     env_name = env.spec.id if env.spec is not None else "unknown"
     algorithm_name = algorithm.name
-    q_network_save_dir = os.path.join(SAVE_DATA_DIR, env_name, algorithm_name, "q_network")
-    best_agent_network_save_dir = os.path.join(SAVE_DATA_DIR,env_name, algorithm_name, "best_agent_network")
+    q_network_save_dir = os.path.join(
+        SAVE_DATA_DIR, env_name, algorithm_name, "q_network"
+    )
+    best_agent_network_save_dir = os.path.join(
+        SAVE_DATA_DIR, env_name, algorithm_name, "best_agent_network"
+    )
 
     algorithm.save_q_network(save_dir=q_network_save_dir)
     algorithm.save_best_agent_network(save_dir=best_agent_network_save_dir)

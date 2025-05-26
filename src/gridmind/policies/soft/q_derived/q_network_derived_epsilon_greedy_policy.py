@@ -36,7 +36,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def set_network(self, network):
         self.Q = network
         self.device = next(self.Q.parameters()).device
-        
+
     def update(self, state, action):
         raise Exception(
             "This policy is derived from q_network. Instead of directly updating the action to take in a state, please update the state-action value. Use update_q method instead."

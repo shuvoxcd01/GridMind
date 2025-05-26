@@ -1,5 +1,6 @@
 import gymnasium as gym
 
+
 class IdleAgentTruncationWrapper(gym.Wrapper):
     def __init__(self, env, max_idle_frames=1000, max_repeated_actions=250):
         super().__init__(env)
