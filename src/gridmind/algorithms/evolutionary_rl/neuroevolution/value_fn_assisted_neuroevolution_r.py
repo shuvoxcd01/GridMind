@@ -498,6 +498,8 @@ class QAssistedNeuroEvolution:
                 self.logger.debug("Evaluating Q Derived Policy")
                 q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
                 self.logger.info(f"Q Derived Policy Score: {q_derived_policy_score}")
+                self.save_q_network(save_dir=os.path.join(SAVE_DATA_DIR, env_name, algorithm_name,"q_networks", f"generation_{generation}"))
+                self.save_best_agent_network(save_dir=os.path.join(SAVE_DATA_DIR,env_name, algorithm_name, "best_agent_networks", f"generation_{generation}"))
 
                 if self.summary_writer is not None:
                     self.summary_writer.add_scalar(
