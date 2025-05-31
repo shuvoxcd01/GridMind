@@ -69,6 +69,7 @@ class QAssistedNeuroEvolution:
         self.logger.setLevel(logging.DEBUG)
         self.name = "QAssistedNeuroEvolution"
         self.env = env
+        self.env_name = self.env.spec.id if self.env.spec is not None else "unknown"
         self.mu = mu
         self._lambda = _lambda
         self.mutation_mean = mutation_mean
@@ -503,8 +504,8 @@ class QAssistedNeuroEvolution:
                 self.save_q_network(
                     save_dir=os.path.join(
                         SAVE_DATA_DIR,
-                        env_name,
-                        algorithm_name,
+                        self.env_name,
+                        self.name,
                         "q_networks",
                         f"generation_{generation}",
                     )
@@ -512,8 +513,8 @@ class QAssistedNeuroEvolution:
                 self.save_best_agent_network(
                     save_dir=os.path.join(
                         SAVE_DATA_DIR,
-                        env_name,
-                        algorithm_name,
+                        self.env_name,
+                        self.name,
                         "best_agent_networks",
                         f"generation_{generation}",
                     )
