@@ -3,7 +3,9 @@ from gridmind.algorithms.function_approximation.ppo.ppo import PPO
 from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import (
     OneStepActorCritic,
 )
-from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning import DeepQLearning
+from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning import (
+    DeepQLearning,
+)
 from gridmind.algorithms.function_approximation.temporal_difference.control.episodic_semi_gradient_sarsa import (
     EpisodicSemiGradientSARSA,
 )
@@ -11,7 +13,7 @@ from gridmind.algorithms.function_approximation.temporal_difference.control.epis
 ProximalPolicyOptimization = PPO
 ActorCritic = OneStepActorCritic
 SARSA = SemiGradientSARSA = EpisodicSemiGradientSARSA
-DQL = DeepQLearning 
+DQL = DeepQLearning
 
 # Tabular algorithms
 from gridmind.algorithms.tabular.temporal_difference.control.q_learning import (
@@ -34,5 +36,6 @@ from gridmind.algorithms.tabular.monte_carlo.monte_carlo_exploring_start import 
 MCESTabular = MCES
 
 # Evolutionary algorithms
-from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution import NeuroEvolution
-
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution import (
+    NeuroEvolution,
+)

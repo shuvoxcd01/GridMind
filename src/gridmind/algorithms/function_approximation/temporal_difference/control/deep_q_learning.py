@@ -27,7 +27,6 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         epsilon_decay_rate: float = 0.0001,
         epsilon_min: float = 0.1,
         epsilon_max: float = 1.0,
-
         feature_constructor: Optional[Callable] = None,
         summary_dir=None,
         write_summary=True,
@@ -54,7 +53,12 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         self.num_updates_per_episode = num_updates_per_episode
         self._current_step = 0
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        self.default_save_dir = os.path.join(SAVE_DATA_DIR, env_name, self.name, datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"))
+        self.default_save_dir = os.path.join(
+            SAVE_DATA_DIR,
+            env_name,
+            self.name,
+            datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
+        )
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
 
@@ -109,7 +113,9 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
 
                     # Convert to tensors and perform training step
                     observations = self._preprocess(observations).to(self.device)
-                    next_observations = self._preprocess(next_observations).to(self.device)
+                    next_observations = self._preprocess(next_observations).to(
+                        self.device
+                    )
 
                     rewards = torch.from_numpy(rewards).float().to(self.device)
                     actions = torch.from_numpy(actions).to(self.device)
@@ -137,7 +143,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
     def _select_action(self, observation):
         """Select an action using epsilon-greedy policy."""
         self._current_step += 1
-        
+
         if self.epsilon_decay:
             epsilon = max(
                 self.epsilon_min,
@@ -199,5 +205,3 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
             self.q_network.load_state_dict(torch.load(load_path))
         else:
             self.q_network = torch.load(load_path)
-
-   

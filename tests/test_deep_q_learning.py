@@ -2,6 +2,7 @@ from gridmind.algorithms import DeepQLearning
 import pytest
 import gymnasium as gym
 
+
 def test_deep_q_learning_no_exceptions():
     env = gym.make("CartPole-v1")
     algorithm = DeepQLearning(env=env)
