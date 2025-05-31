@@ -13,4 +13,4 @@ def test_q_learning_tabular_no_exceptions():
         pytest.fail(f"Training raised an exception: {e}")
 
 
-#test_q_learning_tabular_no_exceptions()
+# test_q_learning_tabular_no_exceptions()
