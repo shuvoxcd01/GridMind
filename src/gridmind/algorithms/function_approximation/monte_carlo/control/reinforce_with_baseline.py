@@ -1,26 +1,35 @@
 import numbers
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.parameterized.discrete_action_mlp_policy import DiscreteActionMLPPolicy
+from gridmind.policies.parameterized.discrete_action_mlp_policy import (
+    DiscreteActionMLPPolicy,
+)
 from gridmind.utils.algorithm_util.episode_collector import collect_episode
 from gridmind.utils.algorithm_util.trajectory import Trajectory
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
-from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import NNValueEstimatorMultilayer
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
+    BasicPerformanceEvaluator,
+)
+from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import (
+    NNValueEstimatorMultilayer,
+)
 from gymnasium import Env
 import torch
 from tqdm import trange
 
 
 class ReinforceWithBaseline(BaseLearningAlgorithm):
-    def __init__(self,  env:Env, 
-                policy:Optional[DiscreteActionMLPPolicy]=None, 
-                value_estimator:Optional[NNValueEstimatorMultilayer]  = None,
-                policy_step_size:float=0.0001,
-                value_step_size:float=0.001,
-                discount_factor:float=0.99, 
-                feature_constructor=None, 
-                grad_clip_value: float = 1.0,):
-        
+    def __init__(
+        self,
+        env: Env,
+        policy: Optional[DiscreteActionMLPPolicy] = None,
+        value_estimator: Optional[NNValueEstimatorMultilayer] = None,
+        policy_step_size: float = 0.0001,
+        value_step_size: float = 0.001,
+        discount_factor: float = 0.99,
+        feature_constructor=None,
+        grad_clip_value: float = 1.0,
+    ):
+
         super().__init__("ReinforceWithBaseline", env)
         self.policy = policy
         self.policy_step_size = policy_step_size
@@ -56,7 +65,7 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
 
     def _determine_observation_shape(self):
         observation, _ = self.env.reset()
-        
+
         features = self.feature_constructor(observation)
 
         shape = features.shape
@@ -73,11 +82,11 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
             obs = torch.tensor(obs, dtype=torch.float32)
 
         return obs
-   
-    def _get_state_value_fn(self, force_functional_interface = True):
+
+    def _get_state_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
-    def _get_state_action_value_fn(self, force_functional_interface = True):
+    def _get_state_action_value_fn(self, force_functional_interface=True):
         raise NotImplementedError
 
     def _get_policy(self):
@@ -86,22 +95,26 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
-    def _train(self, num_episodes, prediction_only:bool = False):
+    def _train(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")
 
         trajectory = Trajectory()
 
         for i in trange(num_episodes):
-            collect_episode(env=self.env, policy=self.policy, trajectory=trajectory, obs_preprocessor=self._preprocess)
-
+            collect_episode(
+                env=self.env,
+                policy=self.policy,
+                trajectory=trajectory,
+                obs_preprocessor=self._preprocess,
+            )
 
             discounted_return = 0.0
 
             for timestep in reversed(range(trajectory.get_trajectory_length())):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
-                
+                obs = self._preprocess(obs)
                 log_prob = torch.log(self.policy.get_action_probs(obs, action))
                 value_pred = self.value_estimator(obs)
                 delta = discounted_return - value_pred
@@ -110,12 +123,12 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
                     value_pred,
                     self.value_estimator.parameters(),
                 )
-               
+
                 policy_grads = torch.autograd.grad(
                     log_prob,
                     self.policy.parameters(),
                 )
-                if i%100 == 0 and i!=0:
+                if i % 100 == 0 and i != 0:
                     self.logger.debug(f"Policy grads: {policy_grads}")
 
                 # # Clipping for policy gradients
@@ -131,24 +144,51 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
                         self.value_estimator.parameters(), value_grads
                     ):
                         param.copy_(param.data + self.value_step_size * delta * grad)
-                
+
                 with torch.no_grad():
-                    for param, grad in zip(
-                        self.policy.parameters(), policy_grads
-                    ):
-                        param.copy_(param.data + self.policy_step_size * (self.discount_factor**timestep) * delta * grad)
+                    for param, grad in zip(self.policy.parameters(), policy_grads):
+                        param.copy_(
+                            param.data
+                            + self.policy_step_size
+                            * (self.discount_factor**timestep)
+                            * delta
+                            * grad
+                        )
 
 
 if __name__ == "__main__":
     import gymnasium as gym
     from gymnasium.wrappers import NormalizeReward
-    env = gym.make("CartPole-v1")
+    from gridmind.feature_construction.one_hot import OneHotEncoder
 
-    eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
+    env = gym.make(
+        "FrozenLake-v1",
+        desc=None,
+        map_name="4x4",
+        is_slippery=False,
+    )
+    feature_encoder = OneHotEncoder(num_classes=env.observation_space.n)
+    # env = gym.make("CartPole-v1")
 
-    performance_evaluator = BasicPerformanceEvaluator(env= eval_env, epoch_eval_interval=500)
+    # eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
+    eval_env = gym.make(
+        "FrozenLake-v1",
+        desc=None,
+        map_name="4x4",
+        is_slippery=False,
+        render_mode="rgb_array",
+    )
+
+    performance_evaluator = BasicPerformanceEvaluator(
+        env=eval_env, epoch_eval_interval=500
+    )
     # policy = ActorCriticPolicy(env)
-    algorithm = ReinforceWithBaseline(env=env, policy_step_size=0.0001)
+    algorithm = ReinforceWithBaseline(
+        env=env,
+        policy_step_size=0.1,
+        value_step_size=0.1,
+        feature_constructor=feature_encoder,
+    )
     algorithm.register_performance_evaluator(performance_evaluator)
 
     algorithm.train(num_episodes=10000, prediction_only=False)

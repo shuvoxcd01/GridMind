@@ -31,6 +31,8 @@ class BaseLearningAlgorithm(ABC):
         self,
         name: str,
         env: Optional[Env] = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -41,10 +43,29 @@ class BaseLearningAlgorithm(ABC):
         self.monitor_divergence = False
         self.stop_on_divergence = False
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        summary_dir = os.path.join(SAVE_DATA_DIR, env_name,"summaries", self.name, "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"))
-        if not os.path.exists(summary_dir):
-            os.makedirs(summary_dir)
-        self.summary_writer = SummaryWriter(log_dir=summary_dir)
+
+        self.write_summary = write_summary
+        if self.write_summary:
+            assert (
+                summary_dir is not None or SAVE_DATA_DIR is not None
+            ), "Please specify summary_dir"
+
+            self._initialize_summary_writer(summary_dir, env_name)
+
+    def _initialize_summary_writer(self, summary_dir, env_name):
+        summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
+
+        log_dir = os.path.join(
+            summary_dir,
+            env_name,
+            "summaries",
+            self.name,
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+        )
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        self.summary_writer = SummaryWriter(log_dir=log_dir)
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
@@ -146,7 +167,7 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def train(self, num_episodes: int, prediction_only: bool):
+    def train(self, num_episodes: int, prediction_only: bool, save_policy: bool = True):
         num_outer_iter = 1
         num_inner_iter = num_episodes
 
@@ -163,11 +184,14 @@ class BaseLearningAlgorithm(ABC):
             self._train(num_inner_iter, prediction_only)
 
             if self.perform_evaluation:
-                performance_evaluation = self.performance_evaluator.evaluate_performance()
+                performance_evaluation = (
+                    self.performance_evaluator.evaluate_performance()
+                )
                 if performance_evaluation:
                     steps_count = epoch * num_inner_iter
-                    for key, value in performance_evaluation.items():
-                        self.summary_writer.add_scalar(key, value, steps_count)
+                    if self.write_summary:
+                        for key, value in performance_evaluation.items():
+                            self.summary_writer.add_scalar(key, value, steps_count)
 
             if self.monitor_divergence and self.divergence_detector.detect_divergence():
                 self.logger.warning("Divergence detected.")
@@ -176,12 +200,13 @@ class BaseLearningAlgorithm(ABC):
                     self.logger.warning("Stopping training due to divergence.")
                     self.set_policy(policy_prev)
                     break
+        
+        if save_policy:
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-
-        if SAVE_DATA_DIR is not None:
-            saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
-            self.save_policy(saved_policy_dir)
+            if SAVE_DATA_DIR is not None:
+                saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+                self.save_policy(saved_policy_dir)
 
     def _report_all_metrics(self):
         try:

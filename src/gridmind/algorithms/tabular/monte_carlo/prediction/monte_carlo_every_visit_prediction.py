@@ -31,7 +31,7 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     def _train(self, num_episodes: int, prediction_only: bool):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
-        
+
         trajectory = Trajectory()
         returns = defaultdict(list)
 
@@ -47,10 +47,10 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
                 returns[state].append(discounted_return)
                 self.V[state] = np.mean(returns[state])
 
-    def _get_state_value_fn(self, force_functional_interface:bool = True):
+    def _get_state_value_fn(self, force_functional_interface: bool = True):
         if not force_functional_interface:
             return self.V
-        
+
         return lambda s: self.V[s]
 
     def _get_state_action_value_fn(self, force_functional_interface: bool = True):
@@ -60,7 +60,3 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError
-
-
-  
-
