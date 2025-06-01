@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 from typing import Callable, Optional
 from gridmind.algorithms.function_approximation.base_function_approximation_based_learning_algorithm import (
@@ -28,6 +29,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         summary_dir=None,
         write_summary=True,
         device: Optional[str] = None,
+        target_network_update_frequency: int = 1000,
     ):
         super().__init__(
             name="DeepQLearning",
@@ -43,12 +45,15 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.summary_writer = None
+        self.target_network_update_frequency = target_network_update_frequency
+
         self.device = (
             device
             if device is not None
             else "cuda" if torch.cuda.is_available() else "cpu"
         )
-        self.q_network = (
+
+        self.q_online = (
             q_network
             if q_network is not None
             else QNetwork(
@@ -57,10 +62,16 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
                 num_actions=self.num_actions,
             )
         )
-        self.q_network.to(self.device)
-        self.optimizer = torch.optim.Adam(
-            self.q_network.parameters(), lr=self.step_size
-        )
+
+        self.q_target = deepcopy(self.q_online)  # Create a copy of the online network
+
+        self.q_target.load_state_dict(self.q_online.state_dict())
+        self.q_target.eval()  # Set target network to evaluation mode
+
+        self.q_online.to(self.device)
+        self.q_target.to(self.device)
+
+        self.optimizer = torch.optim.Adam(self.q_online.parameters(), lr=self.step_size)
         self.global_step = 0
 
     def set_summary_writer(self, summary_writer):
@@ -74,7 +85,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         """Predict the Q-values for the given observations."""
         observations = self._preprocess(observations).to(self.device)
         with torch.no_grad():
-            q_values = self.q_network(observations)
+            q_values = self.q_online(observations)
         return q_values
 
     def train(self, replay_buffer: SimpleReplayBuffer, num_updates: int):
@@ -98,31 +109,37 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
             terminated = torch.from_numpy(terminated).float().to(self.device)
 
             # Compute target Q-values
-            target_q_values = (
-                rewards
-                + (1 - terminated)
-                * self.discount_factor
-                * self.q_network(next_observations).max(axis=1).values
-            )
+            with torch.no_grad():
+                target_q_values = (
+                    rewards
+                    + (1 - terminated)
+                    * self.discount_factor
+                    * self.q_target(next_observations).max(axis=1).values
+                )
 
             # Update Q-network
             self.optimizer.zero_grad()
             q_values = (
-                self.q_network(observations).gather(1, actions.unsqueeze(1)).squeeze()
+                self.q_online(observations).gather(1, actions.unsqueeze(1)).squeeze()
             )
             loss = torch.nn.functional.mse_loss(q_values, target_q_values)
             if self.summary_writer is not None:
                 self.summary_writer.add_scalar(
                     "q_learning_loss", loss.item(), global_step=self.global_step
                 )
-                self.global_step += 1
 
             loss.backward()
             self.optimizer.step()
 
+            if self.global_step % self.target_network_update_frequency == 0:
+                # Update target network
+                self.q_target.load_state_dict(self.q_online.state_dict())
+
+            self.global_step += 1
+
     def _get_policy(self):
         policy = QNetworkDerivedEpsilonGreedyPolicy(
-            q_network=self.q_network,
+            q_network=self.q_online,
             num_actions=self.num_actions,
             action_space=self.env.action_space,
             epsilon=0.0,
@@ -135,10 +152,10 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         os.makedirs(directory, exist_ok=True)
         path = os.path.join(directory, "q_network.pth")
         if state_dict_only:
-            torch.save(self.q_network.state_dict(), path)
+            torch.save(self.q_online.state_dict(), path)
         else:
             # Save the entire model
-            torch.save(self.q_network, path)
+            torch.save(self.q_online, path)
 
     def load_q_network(self, directory: str, state_dict_only: bool = False):
         """Load the Q-network"""
@@ -147,11 +164,11 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
             raise FileNotFoundError(f"Q-network file not found: {path}")
 
         if state_dict_only:
-            self.q_network.load_state_dict(torch.load(path))
+            self.q_online.load_state_dict(torch.load(path))
         else:
             # Load the entire model
-            self.q_network = torch.load(path)
+            self.q_online = torch.load(path)
 
-        self.q_network.to(self.device)
+        self.q_online.to(self.device)
 
-        return self.q_network
+        return self.q_online
