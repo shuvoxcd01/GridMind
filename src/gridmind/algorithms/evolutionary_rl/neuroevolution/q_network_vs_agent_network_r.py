@@ -31,8 +31,8 @@ q_policy = QNetworkDerivedEpsilonGreedyPolicy(
     q_network=q_network, num_actions=env.action_space.n, action_space=env.action_space
 )
 
-#for policy_name, policy in zip(["agent_policy", "q_policy"], [agent_policy, q_policy]):
-for (policy_name, policy) in [("q_policy", q_policy)]:
+# for policy_name, policy in zip(["agent_policy", "q_policy"], [agent_policy, q_policy]):
+for policy_name, policy in [("q_policy", q_policy)]:
     print(f"Running policy: {policy_name}")
     total_return = 0
     for i in range(2):
