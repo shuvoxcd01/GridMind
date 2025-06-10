@@ -52,7 +52,7 @@ class BaseLearningAlgorithm(ABC):
 
             self._initialize_summary_writer(summary_dir, env_name)
 
-    def _initialize_summary_writer(self, summary_dir, env_name):
+    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = ""):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -60,7 +60,7 @@ class BaseLearningAlgorithm(ABC):
             env_name,
             "summaries",
             self.name,
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S")+ extra_info
         )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
