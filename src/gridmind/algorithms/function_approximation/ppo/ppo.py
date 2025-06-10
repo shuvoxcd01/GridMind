@@ -89,6 +89,9 @@ class PPO(BaseLearningAlgorithm):
         for i in range(0, len(data), batch_size):
             yield data[i : i + batch_size]
 
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
     def _train_episodes(self, num_episodes, prediction_only):
         assert not prediction_only, "Prediction only is not supported for PPO"
 

@@ -95,6 +95,9 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
     def _train_episodes(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")

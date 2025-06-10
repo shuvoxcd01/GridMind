@@ -60,6 +60,9 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
     def _train_episodes(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
