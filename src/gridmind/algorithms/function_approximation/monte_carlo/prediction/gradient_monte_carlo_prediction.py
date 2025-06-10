@@ -63,7 +63,7 @@ class GradientMonteCarloPrediction(BaseFunctionApproximationBasedLearingAlgorith
     def _get_policy(self):
         return self.policy
 
-    def _train(self, num_episodes: int, prediction_only: bool):
+    def _train_episodes(self, num_episodes: int, prediction_only: bool):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 

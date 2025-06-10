@@ -11,4 +11,4 @@ policy = ActorCriticPolicy(env)
 algorithm = ProximalPolicyOptimization(env=env, num_actions=env.action_space.n, policy=policy, policy_step_size=0.0001)
 algorithm.register_performance_evaluator(performance_evaluator)
 
-algorithm.train(num_episodes=500, prediction_only=False)
+algorithm.train_episodes(num_episodes=500, prediction_only=False)

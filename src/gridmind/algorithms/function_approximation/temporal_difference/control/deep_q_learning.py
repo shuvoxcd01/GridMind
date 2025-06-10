@@ -87,7 +87,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
 
         self.global_network_update_step = 0
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         assert (
             prediction_only is False
         ), "Deep Q-Learning is a control algorithm and cannot be used for prediction only."

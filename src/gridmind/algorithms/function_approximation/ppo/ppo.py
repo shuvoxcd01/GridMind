@@ -89,7 +89,7 @@ class PPO(BaseLearningAlgorithm):
         for i in range(0, len(data), batch_size):
             yield data[i : i + batch_size]
 
-    def _train(self, num_episodes, prediction_only):
+    def _train_episodes(self, num_episodes, prediction_only):
         assert not prediction_only, "Prediction only is not supported for PPO"
 
         num_collect_episodes = 5
@@ -209,4 +209,4 @@ if __name__ == "__main__":
     algorithm = PPO(env=env, num_actions=env.action_space.n, policy=policy)
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=1000, prediction_only=False)
+    algorithm.train_episodes(num_episodes=1000, prediction_only=False)

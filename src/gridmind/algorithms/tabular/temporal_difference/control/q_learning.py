@@ -63,7 +63,7 @@ class QLearning(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only:
             raise Exception("This is a control-only implementation.")
 

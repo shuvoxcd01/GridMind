@@ -8,7 +8,7 @@ def test_q_learning_tabular_no_exceptions():
     algorithm = MCESTabular(env=env)
 
     try:
-        algorithm.train(num_episodes=10, prediction_only=False, save_policy=False)
+        algorithm.train_episodes(num_episodes=10, prediction_only=False, save_policy=False)
     except Exception as e:
         pytest.fail(f"Training raised an exception: {e}")
 

@@ -82,7 +82,7 @@ class Reinforce(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
-    def _train(self, num_episodes, prediction_only: bool = False):
+    def _train_episodes(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")
 
@@ -145,4 +145,4 @@ if __name__ == "__main__":
     algorithm = Reinforce(env=env, step_size=0.0001)
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=10000, prediction_only=False)
+    algorithm.train_episodes(num_episodes=10000, prediction_only=False)
