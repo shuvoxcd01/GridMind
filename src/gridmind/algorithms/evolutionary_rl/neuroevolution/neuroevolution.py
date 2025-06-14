@@ -32,7 +32,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         _lambda: int = 20,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
-        feature_constructor: Callable = None,
+        feature_constructor: Optional[Callable] = None,
         num_processes: Optional[int] = None,
         stopping_fitness: Optional[float] = None,
         summary_dir: Optional[str] = None,
