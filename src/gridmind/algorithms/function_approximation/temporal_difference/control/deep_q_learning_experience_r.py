@@ -85,17 +85,19 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         """Predict the Q-values for the given observations."""
         if not is_preprocessed:
             observations = self._preprocess(observations).to(self.device)
-        
+
         with torch.no_grad():
             q_values = self.q_online(observations)
         return q_values
 
-    def _train_steps(self, num_steps: int, prediction_only:bool, replay_buffer: SimpleReplayBuffer):
+    def _train_steps(
+        self, num_steps: int, prediction_only: bool, replay_buffer: SimpleReplayBuffer
+    ):
         if prediction_only:
             raise ValueError(
                 "Deep Q-Learning with Experience Replay is a control algorithm and does not support prediction-only mode."
             )
-        
+
         """Train the Q-network using experience replay."""
         assert (
             replay_buffer.size() >= self.batch_size

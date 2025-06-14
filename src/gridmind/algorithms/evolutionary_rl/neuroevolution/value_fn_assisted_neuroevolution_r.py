@@ -50,13 +50,13 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
         replay_buffer_capacity: Optional[int] = None,
-        replay_buffer_minimum_size:Optional[int] = None,
+        replay_buffer_minimum_size: Optional[int] = None,
         q_network: Optional[nn.Module] = None,
         q_network_preferred_device: Optional[str] = None,
         q_learner: Optional[DeepQLearningWithExperienceReplay] = None,
-        q_step_size:float = 0.001,
-        q_discount_factor:float = 0.99,
-        q_learner_num_steps:int = 5000,
+        q_step_size: float = 0.001,
+        q_discount_factor: float = 0.99,
+        q_learner_num_steps: int = 5000,
         q_learner_target_network_update_frequency: int = 1000,
         q_learner_batch_size: int = 256,
         num_top_k: int = 25,
@@ -104,11 +104,17 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self.q_learner_batch_size = q_learner_batch_size
         self.q_learner_num_steps = q_learner_num_steps
-        self.q_learner_target_network_update_frequency = q_learner_target_network_update_frequency
-        self.replay_buffer_minimum_size = replay_buffer_minimum_size if replay_buffer_minimum_size is not None else (
-            min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2)
-            if replay_buffer_capacity is not None
-            else 100 * self.q_learner_batch_size
+        self.q_learner_target_network_update_frequency = (
+            q_learner_target_network_update_frequency
+        )
+        self.replay_buffer_minimum_size = (
+            replay_buffer_minimum_size
+            if replay_buffer_minimum_size is not None
+            else (
+                min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2)
+                if replay_buffer_capacity is not None
+                else 100 * self.q_learner_batch_size
+            )
         )
         if q_network_preferred_device is not None:
             self.q_network_preferred_device = q_network_preferred_device
@@ -163,7 +169,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         else:
             self.summary_writer = None
 
-    def _initialize_summary_writer(self, summary_dir, env_name, extra_info:str=""):
+    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = ""):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -355,13 +361,13 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             episode_return += float(reward)
             done = terminated or truncated
             self.replay_buffer.store(
-                    state=obs,
-                    action=action,
-                    reward=reward,
-                    next_state=next_obs,
-                    terminated=terminated,
-                    truncated=truncated,
-                )
+                state=obs,
+                action=action,
+                reward=reward,
+                next_state=next_obs,
+                terminated=terminated,
+                truncated=truncated,
+            )
             obs = next_obs
         return episode_return
 
@@ -377,7 +383,10 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         # Compute Q-values
         q_values = (
-            self.q_learner.predict(observations, is_preprocessed=True).to("cpu").gather(1, actions).squeeze()
+            self.q_learner.predict(observations, is_preprocessed=True)
+            .to("cpu")
+            .gather(1, actions)
+            .squeeze()
         )
 
         # Compute fitness as the mean Q-value
@@ -411,7 +420,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 if assign_score:
                     agent.score = score
 
-        self.q_learner.train(num_steps=num_steps, prediction_only=False, replay_buffer=self.replay_buffer)
+        self.q_learner.train(
+            num_steps=num_steps, prediction_only=False, replay_buffer=self.replay_buffer
+        )
 
     def train(self, num_generations: int):
         if self.population is None:
@@ -422,9 +433,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             self.logger.info(
                 f"Replay buffer size {self.replay_buffer.size()} is less than minimum required size {self.replay_buffer_minimum_size}. Collecting more episodes."
             )
-            agents = Selection.random_selection(population=self.population, num_selection=1)
+            agents = Selection.random_selection(
+                population=self.population, num_selection=1
+            )
             [self.collect_episode(policy=agent.network) for agent in agents]
-        
+
         if self.train_q_learner:
             self.logger.info(
                 f"Training Q-learner for {self.q_learner_num_steps} steps before starting evolution."
@@ -482,7 +495,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                     self.logger.info(f"Elite agent {agent.name} added")
                 else:
                     self.elites.sort(key=lambda x: x.score, reverse=False)
-                    #ToDo: Shouldn't it be enough just to check if agent.score > elite.score only with the elite with lowest score?
+                    # ToDo: Shouldn't it be enough just to check if agent.score > elite.score only with the elite with lowest score?
                     for i, elite in enumerate(self.elites):
                         if agent.score > elite.score:
                             self.elites[i] = agent
@@ -526,8 +539,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 raise Exception(
                     "Elite agents have duplicate IDs. This should not happen."
                 )
-                
-            
+
             self._record_top_k_metrics(generation)
             self._record_elites_metrics(generation)
 
