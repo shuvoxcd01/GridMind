@@ -65,7 +65,7 @@ class SARSA(BaseLearningAlgorithm):
 
     def _get_policy(self):
         return self.policy
-    
+
     def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
         raise NotImplementedError()
 
