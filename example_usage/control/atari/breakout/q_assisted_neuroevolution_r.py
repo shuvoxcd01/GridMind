@@ -20,7 +20,7 @@ env = FrameStackObservation(env, 4)
 q_network = AtariDQN(observation_shape=env.observation_space.shape, num_actions=env.action_space.n)
 algorithm = QAssistedNeuroEvolution(env=env, policy_class=AtariPolicy, write_summary=True, 
                                     q_network=q_network, mu=50, _lambda=250, replay_buffer_capacity=10000, 
-                                    score_evaluation_num_episodes=1, k=10, reevaluate_agent_score=False)
+                                    score_evaluation_num_episodes=1, num_top_k=10, reevaluate_agent_score=False)
 
 try:
     best_agent = algorithm.train(
