@@ -1,5 +1,5 @@
 from copy import deepcopy
-import logging
+from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
 from gridmind.policies.parameterized.base_parameterized_policy import (
     BaseParameterizedPolicy,
 )
@@ -7,7 +7,7 @@ from torch import nn
 import numbers
 import os
 import time
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable, List, Optional, Type, Union
 
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import (
@@ -28,12 +28,11 @@ import torch
 from tqdm import trange
 import numpy as np
 import gymnasium as gym
-from torch.utils.tensorboard import SummaryWriter
 
 from data import SAVE_DATA_DIR
 
 
-class QAssistedNeuroEvolution:
+class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
     def __init__(
         self,
         env: Env,
@@ -51,11 +50,16 @@ class QAssistedNeuroEvolution:
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
         replay_buffer_capacity: Optional[int] = None,
+        replay_buffer_minimum_size:Optional[int] = None,
         q_network: Optional[nn.Module] = None,
         q_network_preferred_device: Optional[str] = None,
         q_learner: Optional[DeepQLearningWithExperienceReplay] = None,
-        k: int = 25,
+        q_step_size:float = 0.001,
+        q_discount_factor:float = 0.99,
+        q_learner_num_steps:int = 5000,
+        q_learner_target_network_update_frequency: int = 1000,
         q_learner_batch_size: int = 256,
+        num_top_k: int = 25,
         write_summary: bool = True,
         summary_dir: Optional[str] = None,
         train_q_learner: bool = True,
@@ -65,10 +69,7 @@ class QAssistedNeuroEvolution:
         render: bool = False,
         evaluate_q_derived_policy: bool = True,
     ):
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.DEBUG)
-        self.name = "QAssistedNeuroEvolution"
-        self.env = env
+        super().__init__(name="QAssistedNeuroEvolution", env=env, write_summary=False)
         self.env_name = self.env.spec.id if self.env.spec is not None else "unknown"
         self.mu = mu
         self._lambda = _lambda
@@ -87,7 +88,7 @@ class QAssistedNeuroEvolution:
         self.num_actions = self.env.action_space.n
         self.best_agent = None
         self._population_fitness = None
-        self.k = k
+        self.num_top_k = num_top_k
 
         self._generation = 0
         self.policy_class = policy_class
@@ -102,7 +103,9 @@ class QAssistedNeuroEvolution:
 
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self.q_learner_batch_size = q_learner_batch_size
-        self.replay_buffer_minimum_size = (
+        self.q_learner_num_steps = q_learner_num_steps
+        self.q_learner_target_network_update_frequency = q_learner_target_network_update_frequency
+        self.replay_buffer_minimum_size = replay_buffer_minimum_size if replay_buffer_minimum_size is not None else (
             min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2)
             if replay_buffer_capacity is not None
             else 100 * self.q_learner_batch_size
@@ -125,13 +128,14 @@ class QAssistedNeuroEvolution:
         self.q_learner = (
             DeepQLearningWithExperienceReplay(
                 env=self.env,
-                step_size=0.001,
-                discount_factor=0.99,
+                step_size=q_step_size,
+                discount_factor=q_discount_factor,
                 batch_size=self.q_learner_batch_size,
                 epsilon_decay=False,
                 feature_constructor=feature_constructor,
                 q_network=q_network,
                 device=self.q_network_preferred_device,
+                target_network_update_frequency=self.q_learner_target_network_update_frequency,
             )
             if q_learner is None
             else q_learner
@@ -159,7 +163,7 @@ class QAssistedNeuroEvolution:
         else:
             self.summary_writer = None
 
-    def _initialize_summary_writer(self, summary_dir, env_name):
+    def _initialize_summary_writer(self, summary_dir, env_name, extra_info:str=""):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -285,16 +289,16 @@ class QAssistedNeuroEvolution:
 
         return shape
 
-    def _preprocess(self, obs):
+    def _preprocess(self, observation):
         if self.feature_constructor is not None:
-            obs = self.feature_constructor(obs)
+            observation = self.feature_constructor(observation)
 
-        if isinstance(obs, numbers.Number):
-            obs = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+        if isinstance(observation, numbers.Number):
+            observation = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
         else:
-            obs = torch.tensor(obs, dtype=torch.float32)
+            observation = torch.tensor(observation, dtype=torch.float32)
 
-        return obs
+        return observation
 
     def get_best(self, unwrapped: bool = True):
         assert (
@@ -334,17 +338,23 @@ class QAssistedNeuroEvolution:
         sum_episode_return = 0.0
 
         for i in range(self.score_evaluation_num_episodes):
-            obs, info = self.env.reset()
-            done = False
+            sum_episode_return += self.collect_episode(policy)
 
-            while not done:
-                preprocessed_obs = self._preprocess(obs)
-                action = policy.get_action(preprocessed_obs)
-                next_obs, reward, terminated, truncated, info = self.env.step(action)
+        return sum_episode_return / self.score_evaluation_num_episodes
 
-                sum_episode_return += reward
-                done = terminated or truncated
-                self.replay_buffer.store(
+    def collect_episode(self, policy):
+        obs, info = self.env.reset()
+        done = False
+        episode_return = 0.0
+
+        while not done:
+            preprocessed_obs = self._preprocess(obs)
+            action = policy.get_action(preprocessed_obs)
+            next_obs, reward, terminated, truncated, info = self.env.step(action)
+
+            episode_return += float(reward)
+            done = terminated or truncated
+            self.replay_buffer.store(
                     state=obs,
                     action=action,
                     reward=reward,
@@ -352,9 +362,8 @@ class QAssistedNeuroEvolution:
                     terminated=terminated,
                     truncated=truncated,
                 )
-                obs = next_obs
-
-        return sum_episode_return / self.score_evaluation_num_episodes
+            obs = next_obs
+        return episode_return
 
     @torch.no_grad
     def evaluate_fitness_with_q_fn(
@@ -368,7 +377,7 @@ class QAssistedNeuroEvolution:
 
         # Compute Q-values
         q_values = (
-            self.q_learner.predict(observations).to("cpu").gather(1, actions).squeeze()
+            self.q_learner.predict(observations, is_preprocessed=True).to("cpu").gather(1, actions).squeeze()
         )
 
         # Compute fitness as the mean Q-value
@@ -378,22 +387,20 @@ class QAssistedNeuroEvolution:
 
     def train_q_fn(
         self,
-        selection_fn: Callable,
+        selection_fn: Optional[Callable] = None,
         num_individual_to_select_at_a_time: int = 1,
-        assign_score: bool = True,
-        num_minimum_samples: Optional[int] = None,
+        assign_score: bool = False,
+        num_steps: Optional[int] = None,
     ):
-        if num_minimum_samples is None:
-            num_minimum_samples = self.q_learner_batch_size
+        if num_steps is None:
+            num_steps = self.q_learner_num_steps
 
-        if len(self.replay_buffer) == self.replay_buffer.capacity:
-            self.logger.debug(f"Replay buffer is full. Popping elements.")
-            self.replay_buffer.pop(num_elements=num_minimum_samples)
+        if assign_score:
+            assert (
+                selection_fn is not None
+            ), "Selection function must be provided when assigning scores."
 
-        replay_buffer_size_prev = self.replay_buffer.size()
-        samples_added = 0
-
-        while samples_added < num_minimum_samples:
+        if selection_fn is not None:
             selected_agents = selection_fn(
                 population=self.population,
                 num_selection=num_individual_to_select_at_a_time,
@@ -404,9 +411,7 @@ class QAssistedNeuroEvolution:
                 if assign_score:
                     agent.score = score
 
-            samples_added = self.replay_buffer.size() - replay_buffer_size_prev
-
-        self.q_learner.train(replay_buffer=self.replay_buffer, num_updates=10)
+        self.q_learner.train(num_steps=num_steps, prediction_only=False, replay_buffer=self.replay_buffer)
 
     def train(self, num_generations: int):
         if self.population is None:
@@ -414,7 +419,19 @@ class QAssistedNeuroEvolution:
             self.population = self.initialize_population()
 
         while self.replay_buffer.size() < self.replay_buffer_minimum_size:
-            self.train_q_fn(selection_fn=Selection.random_selection, assign_score=False)
+            self.logger.info(
+                f"Replay buffer size {self.replay_buffer.size()} is less than minimum required size {self.replay_buffer_minimum_size}. Collecting more episodes."
+            )
+            agents = Selection.random_selection(population=self.population, num_selection=1)
+            [self.collect_episode(policy=agent.network) for agent in agents]
+        
+        if self.train_q_learner:
+            self.logger.info(
+                f"Training Q-learner for {self.q_learner_num_steps} steps before starting evolution."
+            )
+            self.train_q_fn(
+                num_steps=self.q_learner_num_steps,
+            )
 
         for generation in trange(num_generations):
             sample_observations, _, _, _, _, _ = self.replay_buffer.sample(
@@ -440,8 +457,13 @@ class QAssistedNeuroEvolution:
                 )
 
             self.top_k = Selection.truncation_selection(
-                population=self.population, num_selection=self.k
+                population=self.population, num_selection=self.num_top_k
             )
+
+            # for elite in self.elites:
+            #     if elite.id in [agent.id for agent in self.top_k]:
+            #         raise Exception("LULU: Elite agent found in top_k selection.")
+
             for agent in self.top_k:
                 if agent.score is None or self.reevaluate_agent_score:
                     self.logger.info(f"Evaluating agent {agent.name}")
@@ -450,11 +472,17 @@ class QAssistedNeuroEvolution:
                         f"Evaluated agent {agent.name} score: {agent.score}"
                     )
 
-                if len(self.elites) < self.num_elites:
+                if agent.id in [elite.id for elite in self.elites]:
+                    self.logger.info(
+                        f"Agent {agent.name} is already an elite. Skipping addition."
+                    )
+                    continue
+                elif len(self.elites) < self.num_elites:
                     self.elites.append(agent)
                     self.logger.info(f"Elite agent {agent.name} added")
                 else:
                     self.elites.sort(key=lambda x: x.score, reverse=False)
+                    #ToDo: Shouldn't it be enough just to check if agent.score > elite.score only with the elite with lowest score?
                     for i, elite in enumerate(self.elites):
                         if agent.score > elite.score:
                             self.elites[i] = agent
@@ -493,6 +521,13 @@ class QAssistedNeuroEvolution:
 
                     return self.best_agent
 
+            elite_ids = [elite.id for elite in self.elites]
+            if len(elite_ids) != len(set(elite_ids)):
+                raise Exception(
+                    "Elite agents have duplicate IDs. This should not happen."
+                )
+                
+            
             self._record_top_k_metrics(generation)
             self._record_elites_metrics(generation)
 
@@ -527,22 +562,26 @@ class QAssistedNeuroEvolution:
                         global_step=generation,
                     )
 
-            self.train_q_fn(
-                selection_fn=Selection.fitness_proportionate_selection,
-                assign_score=False,
-            )
+            if self.train_q_learner:
+                self.logger.info(
+                    f"Training Q-learner for {self.q_learner_num_steps} steps in generation {generation}."
+                )
+                self.train_q_fn(
+                    selection_fn=Selection.fitness_proportionate_selection,
+                    assign_score=False,
+                )
 
             # Select parents
             parents = Selection.truncation_selection(
                 population=self.population, num_selection=self.mu
             )
 
+            self.population = deepcopy(parents)
+
             # Add elites to parents if not already present
             for elite in self.elites:
                 if elite.id not in [parent.id for parent in parents]:
                     parents.append(elite)
-
-            self.population = deepcopy(parents)
 
             # Mutation
             for parent in parents:
@@ -693,9 +732,12 @@ if __name__ == "__main__":
         policy_creator=policy_creator,
         write_summary=True,
         stopping_score=500,
+        q_learner_target_network_update_frequency=250,
+        q_learner_num_steps=500,
+        replay_buffer_minimum_size=500,
     )
 
-    algorithm.train(num_generations=10)
+    algorithm.train(num_generations=25)
     env_name = env.spec.id if env.spec is not None else "unknown"
     algorithm_name = algorithm.name
     q_network_save_dir = os.path.join(

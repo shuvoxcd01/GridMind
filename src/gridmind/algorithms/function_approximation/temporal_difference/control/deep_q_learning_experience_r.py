@@ -8,7 +8,6 @@ from gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_policy im
     QNetworkDerivedEpsilonGreedyPolicy,
 )
 from gridmind.utils.algorithm_util.simple_replay_buffer import SimpleReplayBuffer
-from gridmind.value_estimators.action_value_estimators import q_network
 from gridmind.value_estimators.action_value_estimators.q_network import QNetwork
 from gymnasium import Env
 import torch
@@ -27,18 +26,18 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         epsilon_decay: bool = True,
         feature_constructor: Optional[Callable] = None,
         summary_dir=None,
-        write_summary=True,
+        write_summary=False,
         device: Optional[str] = None,
         target_network_update_frequency: int = 1000,
     ):
         super().__init__(
-            name="DeepQLearning",
+            name="DeepQLearningWithExperienceReplay",
             env=env,
             feature_constructor=feature_constructor,
             summary_dir=summary_dir,
             write_summary=write_summary,
         )
-        self.observation_shape = env.observation_space.shape
+        self.observation_shape = self._determine_observation_shape()
         self.num_actions = env.action_space.n
         self.step_size = step_size
         self.discount_factor = discount_factor
@@ -77,24 +76,32 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
     def set_summary_writer(self, summary_writer):
         """Set the summary writer for logging."""
         self.summary_writer = summary_writer
+        self.write_summary = True
 
-    def _train(self, num_episodes, prediction_only):
-        pass
+    def _train_episodes(self, num_episodes, prediction_only):
+        raise NotImplementedError("Training in episodes is not supported.")
 
-    def predict(self, observations):
+    def predict(self, observations, is_preprocessed: bool = False):
         """Predict the Q-values for the given observations."""
-        observations = self._preprocess(observations).to(self.device)
+        if not is_preprocessed:
+            observations = self._preprocess(observations).to(self.device)
+        
         with torch.no_grad():
             q_values = self.q_online(observations)
         return q_values
 
-    def train(self, replay_buffer: SimpleReplayBuffer, num_updates: int):
+    def _train_steps(self, num_steps: int, prediction_only:bool, replay_buffer: SimpleReplayBuffer):
+        if prediction_only:
+            raise ValueError(
+                "Deep Q-Learning with Experience Replay is a control algorithm and does not support prediction-only mode."
+            )
+        
         """Train the Q-network using experience replay."""
         assert (
             replay_buffer.size() >= self.batch_size
         ), "Replay buffer does not have enough samples to sample a batch."
 
-        for i in trange(num_updates):
+        for i in trange(num_steps):
             # Sample a batch of experiences from the replay buffer
             observations, actions, rewards, next_observations, terminated, truncated = (
                 replay_buffer.sample(self.batch_size)
