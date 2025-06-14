@@ -84,7 +84,9 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
     def predict(self, observations, is_preprocessed: bool = False):
         """Predict the Q-values for the given observations."""
         if not is_preprocessed:
-            observations = self._preprocess(observations).to(self.device)
+            observations = self._preprocess(observations)
+
+        observations = observations.to(self.device)
 
         with torch.no_grad():
             q_values = self.q_online(observations)
