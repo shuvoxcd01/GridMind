@@ -17,20 +17,33 @@ class SimpleReplayBuffer:
         """Extend the buffer with another buffer."""
         self.buffer.extend(replay_buffer.buffer)
 
-    def sample(self, batch_size: int = 1):
+    def sample(self, batch_size: int = 1, ):
         """Sample a batch of experiences."""
         if batch_size > self.size():
             raise ValueError("Batch size is greater than buffer size.")
 
         batch = random.sample(self.buffer, batch_size)
         states, actions, rewards, next_states, terminated, truncated = zip(*batch)
+        
+        states_arr = np.array(states)
+        actions_arr = np.array(actions)
+        rewards_arr = np.array(rewards)
+        next_states_arr = np.array(next_states)
+        terminated_arr = np.array(terminated)
+        truncated_arr = np.array(truncated)
+        
+        if states_arr.ndim == 1:
+            states_arr = states_arr.reshape(-1, 1)
+        if next_states_arr.ndim == 1:
+            next_states_arr = next_states_arr.reshape(-1, 1)
+
         return (
-            np.array(states),
-            np.array(actions),
-            np.array(rewards),
-            np.array(next_states),
-            np.array(terminated),
-            np.array(truncated),
+            states_arr,
+            actions_arr,
+            rewards_arr,
+            next_states_arr,
+            terminated_arr,
+            truncated_arr,
         )
 
     def size(self):
