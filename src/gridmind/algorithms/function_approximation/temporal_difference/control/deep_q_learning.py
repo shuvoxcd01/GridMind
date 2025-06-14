@@ -81,9 +81,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         self.q_target.to(self.device)
         self.q_target.eval()  # Set target network to evaluation mode
 
-        self.optimizer = torch.optim.Adam(
-            self.q_online.parameters(), lr=self.step_size
-        )
+        self.optimizer = torch.optim.Adam(self.q_online.parameters(), lr=self.step_size)
 
         self.global_network_update_step = 0
 
@@ -153,10 +151,14 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                     loss.backward()
                     self.optimizer.step()
 
-                    if self.global_network_update_step % self.target_network_update_frequency == 0:
+                    if (
+                        self.global_network_update_step
+                        % self.target_network_update_frequency
+                        == 0
+                    ):
                         # Update target network
                         self.q_target.load_state_dict(self.q_online.state_dict())
-                        
+
                         if self.summary_writer is not None:
                             self.summary_writer.add_scalar(
                                 "target_network_update_step",
@@ -164,11 +166,11 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                                 global_step=self.global_network_update_step,
                             )
 
-                        self.logger.debug(f"Target network updated at step {self.global_network_update_step}")
-                    
+                        self.logger.debug(
+                            f"Target network updated at step {self.global_network_update_step}"
+                        )
+
                     self.global_network_update_step += 1
-
-
 
     def _select_action(self, observation):
         """Select an action using epsilon-greedy policy."""

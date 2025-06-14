@@ -53,7 +53,13 @@ class BaseLearningAlgorithm(ABC):
 
             self._initialize_summary_writer(summary_dir, env_name)
 
-    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = "", use_async_writer: bool = False):
+    def _initialize_summary_writer(
+        self,
+        summary_dir,
+        env_name,
+        extra_info: str = "",
+        use_async_writer: bool = False,
+    ):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -61,12 +67,16 @@ class BaseLearningAlgorithm(ABC):
             env_name,
             "summaries",
             self.name,
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S")+ extra_info
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S") + extra_info,
         )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        self.summary_writer = SummaryWriter(log_dir=log_dir) if not use_async_writer else AsyncTensorboardLogger(log_dir=log_dir)
+        self.summary_writer = (
+            SummaryWriter(log_dir=log_dir)
+            if not use_async_writer
+            else AsyncTensorboardLogger(log_dir=log_dir)
+        )
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
@@ -159,7 +169,9 @@ class BaseLearningAlgorithm(ABC):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def _train_episodes(self, num_episodes: int, prediction_only: bool, *args, **kwargs):
+    def _train_episodes(
+        self, num_episodes: int, prediction_only: bool, *args, **kwargs
+    ):
         raise NotImplementedError("This method must be overridden")
 
     def get_policy_cloned(self):
@@ -167,31 +179,80 @@ class BaseLearningAlgorithm(ABC):
         cloned_policy = copy.deepcopy(policy)
 
         return cloned_policy
-    
-    def train(self, num_episodes:Optional[int]=None, num_steps: Optional[int]=None, prediction_only: bool = False, save_policy: bool = True, *args, **kwargs):
+
+    def train(
+        self,
+        num_episodes: Optional[int] = None,
+        num_steps: Optional[int] = None,
+        prediction_only: bool = False,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
         if num_episodes is not None and num_steps is not None:
-            raise ValueError("Please specify either num_episodes or num_steps, not both.")
+            raise ValueError(
+                "Please specify either num_episodes or num_steps, not both."
+            )
 
         if num_episodes is not None:
-            return self.train_episodes(num_episodes, prediction_only, save_policy, *args, **kwargs)
+            return self.train_episodes(
+                num_episodes, prediction_only, save_policy, *args, **kwargs
+            )
 
         if num_steps is not None:
-            return self.train_steps(num_steps, prediction_only, save_policy, *args, **kwargs)
+            return self.train_steps(
+                num_steps, prediction_only, save_policy, *args, **kwargs
+            )
 
         raise ValueError("Please specify either num_episodes or num_steps.")
 
-    def train_steps(self, num_steps: int, prediction_only: bool, save_policy: bool = True, *args, **kwargs):
-        return self._training_wrapper(num_steps, prediction_only, save_policy, train_by_steps=True, *args, **kwargs)
-    
+    def train_steps(
+        self,
+        num_steps: int,
+        prediction_only: bool,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
+        return self._training_wrapper(
+            num_steps,
+            prediction_only,
+            save_policy,
+            train_by_steps=True,
+            *args,
+            **kwargs,
+        )
+
     @abstractmethod
     def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
         raise NotImplementedError("This method must be overridden")
-        
 
-    def train_episodes(self, num_episodes: int, prediction_only: bool, save_policy: bool = True, *args, **kwargs):
-        return self._training_wrapper(num_episodes, prediction_only, save_policy, train_by_steps=False, *args, **kwargs)
+    def train_episodes(
+        self,
+        num_episodes: int,
+        prediction_only: bool,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
+        return self._training_wrapper(
+            num_episodes,
+            prediction_only,
+            save_policy,
+            train_by_steps=False,
+            *args,
+            **kwargs,
+        )
 
-    def _training_wrapper(self, num_iter, prediction_only, save_policy, train_by_steps=False, *args, **kwargs):
+    def _training_wrapper(
+        self,
+        num_iter,
+        prediction_only,
+        save_policy,
+        train_by_steps=False,
+        *args,
+        **kwargs,
+    ):
         num_outer_iter = 1
         num_inner_iter = num_iter
 
@@ -206,9 +267,19 @@ class BaseLearningAlgorithm(ABC):
                 policy_prev = self.get_policy_cloned()
 
             if not train_by_steps:
-                self._train_episodes(num_episodes=num_inner_iter, prediction_only=prediction_only, *args, **kwargs)
+                self._train_episodes(
+                    num_episodes=num_inner_iter,
+                    prediction_only=prediction_only,
+                    *args,
+                    **kwargs,
+                )
             else:
-                self._train_steps(num_steps=num_inner_iter, prediction_only=prediction_only, *args, **kwargs)
+                self._train_steps(
+                    num_steps=num_inner_iter,
+                    prediction_only=prediction_only,
+                    *args,
+                    **kwargs,
+                )
 
             if self.perform_evaluation:
                 performance_evaluation = (

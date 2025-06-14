@@ -8,7 +8,9 @@ def test_q_learning_tabular_no_exceptions():
     algorithm = NStepSARSATabular(env=env, n=10)
 
     try:
-        algorithm.train_episodes(num_episodes=10, prediction_only=False, save_policy=False)
+        algorithm.train_episodes(
+            num_episodes=10, prediction_only=False, save_policy=False
+        )
     except Exception as e:
         pytest.fail(f"Training raised an exception: {e}")
 

@@ -22,7 +22,6 @@ import numpy as np
 import gymnasium as gym
 
 
-
 class NeuroEvolution(BaseEvoRLAlgorithm):
     def __init__(
         self,
@@ -70,7 +69,6 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         self.population = (
             population if population is not None else self.initialize_population()
         )
-
 
     def initialize_population(self):
         population = []
