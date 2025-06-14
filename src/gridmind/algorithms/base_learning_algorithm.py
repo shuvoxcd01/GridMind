@@ -7,6 +7,7 @@ import dill
 from gridmind.policies.base_policy import BasePolicy
 import logging
 from gridmind.utils.divergence.base_divergence_detector import BaseDivergenceDetector
+from gridmind.utils.logtools.async_tensorboard_logger import AsyncTensorboardLogger
 from gridmind.utils.performance_evaluation.base_performance_evaluator import (
     BasePerformanceEvaluator,
 )
@@ -52,7 +53,7 @@ class BaseLearningAlgorithm(ABC):
 
             self._initialize_summary_writer(summary_dir, env_name)
 
-    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = ""):
+    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = "", use_async_writer: bool = False):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -65,7 +66,7 @@ class BaseLearningAlgorithm(ABC):
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        self.summary_writer = SummaryWriter(log_dir=log_dir)
+        self.summary_writer = SummaryWriter(log_dir=log_dir) if not use_async_writer else AsyncTensorboardLogger(log_dir=log_dir)
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
@@ -158,7 +159,7 @@ class BaseLearningAlgorithm(ABC):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def _train_episodes(self, num_episodes: int, prediction_only: bool):
+    def _train_episodes(self, num_episodes: int, prediction_only: bool, *args, **kwargs):
         raise NotImplementedError("This method must be overridden")
 
     def get_policy_cloned(self):
@@ -205,9 +206,9 @@ class BaseLearningAlgorithm(ABC):
                 policy_prev = self.get_policy_cloned()
 
             if not train_by_steps:
-                self._train_episodes(num_inner_iter, prediction_only, *args, **kwargs)
+                self._train_episodes(num_episodes=num_inner_iter, prediction_only=prediction_only, *args, **kwargs)
             else:
-                self._train_steps(num_inner_iter, prediction_only, *args, **kwargs)
+                self._train_steps(num_steps=num_inner_iter, prediction_only=prediction_only, *args, **kwargs)
 
             if self.perform_evaluation:
                 performance_evaluation = (
