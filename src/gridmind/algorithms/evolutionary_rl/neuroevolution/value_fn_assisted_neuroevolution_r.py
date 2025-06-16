@@ -1,9 +1,12 @@
 from copy import deepcopy
+import logging
 from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
 from gridmind.policies.parameterized.base_parameterized_policy import (
     BaseParameterizedPolicy,
 )
 from torch import nn
+from torch.utils.tensorboard import SummaryWriter
+
 import numbers
 import os
 import time
@@ -39,8 +42,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         population: Optional[
             Union[List[BaseParameterizedPolicy], List[NeuroAgent]]
         ] = None,
-        policy_class: Type[BaseParameterizedPolicy] = DiscreteActionMLPPolicy,
-        policy_creator: Optional[Callable] = None,
+        policy_network_class: Type[BaseParameterizedPolicy] = DiscreteActionMLPPolicy,
+        policy_network_creator_fn: Optional[Callable] = None,
         feature_constructor: Optional[Callable] = None,
         mu: int = 150,
         _lambda: int = 1000,
@@ -63,6 +66,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         write_summary: bool = True,
         summary_dir: Optional[str] = None,
         train_q_learner: bool = True,
+        num_individuals_to_train_q_fn: int = 10,
         num_elites: int = 5,
         score_evaluation_num_episodes: int = 10,
         reevaluate_agent_score: bool = False,
@@ -70,6 +74,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         evaluate_q_derived_policy: bool = True,
     ):
         super().__init__(name="QAssistedNeuroEvolution", env=env, write_summary=False)
+        self.logger.setLevel(logging.INFO)
         self.env_name = self.env.spec.id if self.env.spec is not None else "unknown"
         self.mu = mu
         self._lambda = _lambda
@@ -84,6 +89,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         )
         self.highest_score_possible = stopping_score
         self.agent_name_prefix = agent_name_prefix
+        self.num_individuals_to_train_q_fn = num_individuals_to_train_q_fn
 
         self.num_actions = self.env.action_space.n
         self.best_agent = None
@@ -91,15 +97,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.num_top_k = num_top_k
 
         self._generation = 0
-        self.policy_class = policy_class
-        self.policy_creator = policy_creator
-
-        if population is None:
-            self.population = self.initialize_population()
-        elif isinstance(population[0], DiscreteActionMLPPolicy):
-            self.population = [NeuroAgent(network=policy) for policy in population]
-        elif isinstance(population[0], NeuroAgent):
-            self.population = population
+        self.policy_network_class = policy_network_class
+        self.policy_network_creator_fn = policy_network_creator_fn
 
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self.q_learner_batch_size = q_learner_batch_size
@@ -156,20 +155,31 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.score_evaluation_num_episodes = score_evaluation_num_episodes
         self.reevaluate_agent_score = reevaluate_agent_score
 
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-
         self.write_summary = write_summary
         if self.write_summary:
             assert (
                 summary_dir is not None or SAVE_DATA_DIR is not None
             ), "Please specify summary_dir"
 
-            self._initialize_summary_writer(summary_dir, env_name)
+            self._initialize_summary_writer(summary_dir, self.env_name)
             self.q_learner.set_summary_writer(self.summary_writer)
         else:
             self.summary_writer = None
 
-    def _initialize_summary_writer(self, summary_dir, env_name, extra_info: str = ""):
+        if population is None:
+            self.population = self.initialize_population()
+        elif isinstance(population[0], DiscreteActionMLPPolicy):
+            self.population = [NeuroAgent(network=policy) for policy in population]
+        elif isinstance(population[0], NeuroAgent):
+            self.population = population
+
+    def _initialize_summary_writer(
+        self,
+        summary_dir,
+        env_name,
+        extra_info: str = "",
+        use_async_writer: bool = False,
+    ):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -182,7 +192,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        self.summary_writer = AsyncTensorboardLogger(log_dir=log_dir)
+        self.summary_writer = SummaryWriter(log_dir=log_dir)
 
     @property
     def population_fitness(self):
@@ -202,14 +212,21 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         return policies
 
-    def initialize_population(self):
+    def initialize_population(self, add_graph: bool = True):
         population = []
         for _ in range(self._lambda):
             population.append(self.spawn_individual())
-        return population
 
-    def get_population(self):
-        return self.population
+        if population and add_graph:
+            typical_network = population[0].network
+            self.logger.info("\n%s", typical_network)
+
+            if self.summary_writer is not None:
+                _input = torch.randn(1, *self.observation_shape)
+
+                self.summary_writer.add_graph(typical_network, _input, verbose=False)
+
+        return population
 
     def set_population_from_policies(
         self,
@@ -270,10 +287,10 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         if name_prefix is None:
             name_prefix = self.agent_name_prefix
 
-        if self.policy_creator is not None:
-            network = self.policy_creator()
+        if self.policy_network_creator_fn is not None:
+            network = self.policy_network_creator_fn(self.observation_shape, self.num_actions)
         else:
-            network = self.policy_class(
+            network = self.policy_network_class(
                 observation_shape=self.observation_shape,
                 num_actions=self.num_actions,
             )
@@ -346,6 +363,10 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         for i in range(self.score_evaluation_num_episodes):
             sum_episode_return += self.collect_episode(policy)
 
+        self.logger.debug(f"Sum episode return: {sum_episode_return}")
+        self.logger.debug(f"Num evaluation episodes: {self.score_evaluation_num_episodes}")
+        self.logger.debug(f"Average episode return: {sum_episode_return / self.score_evaluation_num_episodes}")
+
         return sum_episode_return / self.score_evaluation_num_episodes
 
     def collect_episode(self, policy):
@@ -369,6 +390,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 truncated=truncated,
             )
             obs = next_obs
+
+        self.logger.debug(f"Episode return: {episode_return}")
+
         return episode_return
 
     @torch.no_grad
@@ -397,7 +421,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
     def train_q_fn(
         self,
         selection_fn: Optional[Callable] = None,
-        num_individual_to_select_at_a_time: int = 1,
+        num_individuals: int = 1,
         assign_score: bool = False,
         num_steps: Optional[int] = None,
     ):
@@ -412,7 +436,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         if selection_fn is not None:
             selected_agents = selection_fn(
                 population=self.population,
-                num_selection=num_individual_to_select_at_a_time,
+                num_selection=num_individuals,
             )
 
             for agent in selected_agents:
@@ -476,6 +500,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             # for elite in self.elites:
             #     if elite.id in [agent.id for agent in self.top_k]:
             #         raise Exception("LULU: Elite agent found in top_k selection.")
+
+            top_k_ids = [agent.id for agent in self.top_k]
+            #export top-k ids for this generation
+            with open("top_k_ids.txt", "a") as f:
+                f.write(f"Generation {generation}: {', '.join(top_k_ids)}\n")
 
             for agent in self.top_k:
                 if agent.score is None or self.reevaluate_agent_score:
@@ -581,6 +610,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 self.train_q_fn(
                     selection_fn=Selection.fitness_proportionate_selection,
                     assign_score=False,
+                    num_individuals=self.num_individuals_to_train_q_fn,
                 )
 
             # Select parents
@@ -733,15 +763,15 @@ if __name__ == "__main__":
 
     env = gym.make("CartPole-v1")
 
-    policy_creator = lambda: DiscreteActionMLPPolicy(
-        observation_shape=env.observation_space.shape,
-        num_actions=env.action_space.n,
+    policy_creator = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
+        observation_shape=observation_shape,
+        num_actions=num_actions,
         num_hidden_layers=4,
     )
 
     algorithm = QAssistedNeuroEvolution(
         env=env,
-        policy_creator=policy_creator,
+        policy_network_creator_fn=policy_creator,
         write_summary=True,
         stopping_score=500,
         q_learner_target_network_update_frequency=250,
