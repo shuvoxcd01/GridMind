@@ -29,6 +29,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         write_summary=False,
         device: Optional[str] = None,
         target_network_update_frequency: int = 1000,
+        add_graph: bool = True,
     ):
         super().__init__(
             name="DeepQLearningWithExperienceReplay",
@@ -45,6 +46,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.batch_size = batch_size
         self.summary_writer = None
         self.target_network_update_frequency = target_network_update_frequency
+        self.add_graph = add_graph
 
         self.device = (
             device
@@ -67,11 +69,29 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.q_target.load_state_dict(self.q_online.state_dict())
         self.q_target.eval()  # Set target network to evaluation mode
 
+        self.is_graph_added_to_tensorboard = False
+
+        if add_graph:
+            self.logger.info("\n%s", self.q_online)
+
+        self.add_graph_to_tensorboard()
+
         self.q_online.to(self.device)
         self.q_target.to(self.device)
 
         self.optimizer = torch.optim.Adam(self.q_online.parameters(), lr=self.step_size)
         self.global_step = 0
+
+    def add_graph_to_tensorboard(self):
+        if self.add_graph and not self.is_graph_added_to_tensorboard:
+            # Add model graph to summary writer if available
+            if self.summary_writer is not None:
+                self.summary_writer.add_graph(
+                    self.q_online,
+                    torch.zeros((1, *self.observation_shape)).to(self.device),
+                )
+
+                self.is_graph_added_to_tensorboard = True
 
     def set_summary_writer(self, summary_writer):
         """Set the summary writer for logging."""
