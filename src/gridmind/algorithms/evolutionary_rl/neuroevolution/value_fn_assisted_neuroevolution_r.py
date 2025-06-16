@@ -288,7 +288,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             name_prefix = self.agent_name_prefix
 
         if self.policy_network_creator_fn is not None:
-            network = self.policy_network_creator_fn(self.observation_shape, self.num_actions)
+            network = self.policy_network_creator_fn(
+                self.observation_shape, self.num_actions
+            )
         else:
             network = self.policy_network_class(
                 observation_shape=self.observation_shape,
@@ -364,8 +366,12 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             sum_episode_return += self.collect_episode(policy)
 
         self.logger.debug(f"Sum episode return: {sum_episode_return}")
-        self.logger.debug(f"Num evaluation episodes: {self.score_evaluation_num_episodes}")
-        self.logger.debug(f"Average episode return: {sum_episode_return / self.score_evaluation_num_episodes}")
+        self.logger.debug(
+            f"Num evaluation episodes: {self.score_evaluation_num_episodes}"
+        )
+        self.logger.debug(
+            f"Average episode return: {sum_episode_return / self.score_evaluation_num_episodes}"
+        )
 
         return sum_episode_return / self.score_evaluation_num_episodes
 
@@ -400,14 +406,14 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self, policy: DiscreteActionMLPPolicy, observations: np.ndarray
     ):
         # Convert to tensors and perform training step
-        observations = self._preprocess(observations)
+        preprocessed_observations = self._preprocess(observations)
 
         # Get actions from the policy
-        actions = policy.get_actions(observations)
+        actions = policy.get_actions(preprocessed_observations)
 
         # Compute Q-values
         q_values = (
-            self.q_learner.predict(observations, is_preprocessed=True)
+            self.q_learner.predict(observations, is_preprocessed=False)
             .to("cpu")
             .gather(1, actions)
             .squeeze()
@@ -502,7 +508,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             #         raise Exception("LULU: Elite agent found in top_k selection.")
 
             top_k_ids = [agent.id for agent in self.top_k]
-            #export top-k ids for this generation
+            # export top-k ids for this generation
             with open("top_k_ids.txt", "a") as f:
                 f.write(f"Generation {generation}: {', '.join(top_k_ids)}\n")
 

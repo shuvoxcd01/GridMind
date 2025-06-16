@@ -6,7 +6,7 @@ import gymnasium as gym
 env = gym.make("Taxi-v3")
 agent = QLearning(env=env, step_size=0.01, q_initializer='random')
 
-agent.optimize_policy(num_episodes=100000)
+agent.optimize_policy(num_episodes=10000)
 
 q_table = agent.get_state_action_value_fn(force_functional_interface=False)
 print(f"Number of states visited: {len(q_table.keys())}")

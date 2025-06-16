@@ -12,6 +12,7 @@ env = gym.make("Taxi-v3")
 one_hot_encoder = OneHotEncoder(num_classes=500)
 feature_constructor = lambda x: one_hot_encoder(x)
 
+
 def _preprocess(obs, feature_constructor=feature_constructor):
     if feature_constructor is not None:
         obs = feature_constructor(obs)
