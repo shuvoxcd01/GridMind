@@ -7,6 +7,8 @@ from gridmind.value_estimators.action_value_estimators.q_network_with_embedding 
 import gymnasium as gym
 import logging
 
+import torch
+
 logging.basicConfig(level=logging.INFO)
 
 env = gym.make("Taxi-v3")
@@ -22,6 +24,8 @@ feature_constructor = lambda x: embedding_feature_constructor(x)
 
 policy_creator_fn = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
     observation_shape=observation_shape,
+    in_features=64,
+    out_features=64,
     num_actions=num_actions,
     in_features=64,
     out_features=64,
@@ -32,6 +36,7 @@ algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_cre
                                     replay_buffer_capacity=5000, q_learner=q_learner, mutation_std=0.1,
                                     evaluate_q_derived_policy=False, q_learner_num_steps=1000)
 
+algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_creator_fn, write_summary=True, feature_constructor=feature_constructor, q_learner_num_steps=1000, replay_buffer_minimum_size=1000, replay_buffer_capacity=5000, q_learner=q_learner, evaluate_q_derived_policy=False, train_q_learner=False, mutation_std=0.01)
 
 try:
     best_agent = algorithm.train(
@@ -40,6 +45,8 @@ try:
 except KeyboardInterrupt as e:
     print(f"Training interrupted: {e}")
     best_agent = algorithm.get_best(unwrapped=False)
+
+algorithm.save_best_agent_network(".")
 
 eval_env = gym.make("Taxi-v3", render_mode="human")
 
