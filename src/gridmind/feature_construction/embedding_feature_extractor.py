@@ -7,6 +7,8 @@ import numpy as np
 class EmbeddingFeatureExtractor:
     def __init__(self, embedding: nn.Embedding) -> None:
         self.embedding = embedding
+        self.device =  self.embedding.weight.device
+
 
     def __call__(self, input_index: int, *args: Any, **kwds: Any) -> Any:
         with torch.no_grad():
@@ -16,6 +18,6 @@ class EmbeddingFeatureExtractor:
                 input_index = np.squeeze(input_index, axis=-1)
                 input_index = torch.from_numpy(input_index)
 
-            embedding_out = self.embedding(input_index).detach().cpu().numpy()
+            embedding_out = self.embedding(input_index.to(self.device)).detach().cpu().numpy()
 
         return embedding_out
