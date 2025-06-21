@@ -2,9 +2,7 @@ from copy import deepcopy
 import logging
 import multiprocessing
 import numbers
-import os
 import random
-import time
 from typing import Callable, List, Optional
 
 
@@ -16,18 +14,15 @@ from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
 from gridmind.utils.evo_util.selection import Selection
-from torch.utils.tensorboard import SummaryWriter
-
+from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
 from gymnasium import Env
 import torch
 from tqdm import trange
 import numpy as np
 import gymnasium as gym
 
-from data import SAVE_DATA_DIR
 
-
-class NeuroEvolution:
+class NeuroEvolution(BaseEvoRLAlgorithm):
     def __init__(
         self,
         env: Env,
@@ -36,13 +31,19 @@ class NeuroEvolution:
         _lambda: int = 20,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
-        feature_constructor: Callable = None,
+        feature_constructor: Optional[Callable] = None,
         num_processes: Optional[int] = None,
         stopping_fitness: Optional[float] = None,
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        super().__init__(
+            name="NeuroEvolution",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
+
         self.env = env
         self.name = "NeuroEvolution"
         self.mu = mu
@@ -68,28 +69,6 @@ class NeuroEvolution:
         self.population = (
             population if population is not None else self.initialize_population()
         )
-
-        self.write_summary = write_summary
-
-        if self.write_summary:
-            self._initialize_summary_writer(summary_dir=summary_dir)
-
-    def _initialize_summary_writer(self, summary_dir=None):
-        summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-
-        log_dir = os.path.join(
-            summary_dir,
-            env_name,
-            "summaries",
-            self.name,
-            f"-mutation_mean_{self.mutation_mean}-mutation_std_{self.mutation_std}-",
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
-        )
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-        self.summary_writer = SummaryWriter(log_dir=log_dir)
 
     def initialize_population(self):
         population = []

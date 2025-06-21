@@ -9,6 +9,8 @@ def test_ppo_no_exceptions():
     algorithm = PPO(env=env)
 
     try:
-        algorithm.train(num_episodes=10, prediction_only=False, save_policy=False)
+        algorithm.train_episodes(
+            num_episodes=10, prediction_only=False, save_policy=False
+        )
     except Exception as e:
         pytest.fail(f"Training raised an exception: {e}")

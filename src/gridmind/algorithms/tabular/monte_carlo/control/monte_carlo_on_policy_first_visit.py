@@ -21,7 +21,10 @@ class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
     def _get_policy(self):
         raise NotImplementedError()
 
-    def _train(self, num_episodes: int, prediction_only: bool):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool):
         raise NotImplementedError()
 
     def set_policy(self, policy: BasePolicy, **kwargs):
