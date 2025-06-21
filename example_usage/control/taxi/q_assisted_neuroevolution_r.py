@@ -11,8 +11,10 @@ logging.basicConfig(level=logging.INFO)
 
 env = gym.make("Taxi-v3")
 # one_hot_encoder = OneHotEncoder(num_classes=500)
-q_network = QNetworkWithEmbedding(num_embeddings=500, embedding_dim=32,num_hidden_layers=2, num_actions=env.action_space.n)
-q_learner = DeepQLearningWithExperienceReplay(env = env, q_network=q_network, batch_size=256, feature_constructor=None, write_summary=True, target_network_update_frequency=500)
+q_network = QNetworkWithEmbedding(num_embeddings=500, embedding_dim=64,num_hidden_layers=1, num_actions=env.action_space.n)
+q_learner = DeepQLearningWithExperienceReplay(env = env, q_network=q_network, batch_size=512, 
+                                              feature_constructor=None, write_summary=True, 
+                                              target_network_update_frequency=500)
 embedding_layer = q_network.get_embedding()
 embedding_feature_constructor = EmbeddingFeatureExtractor(embedding=embedding_layer)
 feature_constructor = lambda x: embedding_feature_constructor(x)
@@ -21,9 +23,14 @@ feature_constructor = lambda x: embedding_feature_constructor(x)
 policy_creator_fn = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
     observation_shape=observation_shape,
     num_actions=num_actions,
+    in_features=64,
+    out_features=64,
     num_hidden_layers=2, 
 )
-algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_creator_fn, write_summary=True, feature_constructor=feature_constructor, q_learner_num_steps=1000, replay_buffer_minimum_size=1000, replay_buffer_capacity=5000, q_learner=q_learner, evaluate_q_derived_policy=False)
+algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_creator_fn,
+                                    write_summary=True, feature_constructor=feature_constructor,
+                                    replay_buffer_capacity=5000, q_learner=q_learner, mutation_std=0.1,
+                                    evaluate_q_derived_policy=False, q_learner_num_steps=1000)
 
 
 try:
