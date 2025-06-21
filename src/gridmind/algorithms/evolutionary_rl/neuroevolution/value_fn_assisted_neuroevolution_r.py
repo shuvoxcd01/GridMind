@@ -49,6 +49,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         _lambda: int = 1000,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
+        mutation_std_min:float=0.001,
+        mutation_std_max:float=0.1,
+        ema_elite_weight: float = 0.9,
         stopping_score: Optional[float] = None,
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
@@ -80,6 +83,16 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self._lambda = _lambda
         self.mutation_mean = mutation_mean
         self.mutation_std = mutation_std
+        self.mutation_std_max = mutation_std_max
+        self.mutation_std_min = mutation_std_min
+        self.momentum: float = 0.0
+        self.elite_score_history_limit:int=10
+        self.elite_scores_history:List[float] = []
+        self.elite_score:Optional[float] = None
+        self.ema_elite_score:Optional[float] = None
+        self.ema_elite_score_weight = ema_elite_weight
+        self.elite_score_previous:Optional[float]=None
+        self.generations_since_last_elite_update:int=0
         self.curate_trajectory = curate_trajectory
         self.feature_constructor = feature_constructor
         self.observation_shape = (
@@ -172,6 +185,45 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             self.population = [NeuroAgent(network=policy) for policy in population]
         elif isinstance(population[0], NeuroAgent):
             self.population = population
+
+    def _update_mutation_std(self):
+        assert self.elite_score is not None, "Elite score must be set before updating mutation rate"
+
+        if self.ema_elite_score is None:
+            self.ema_elite_score = self.elite_score
+            return
+        
+        self.ema_elite_score = self.ema_elite_score * self.ema_elite_score_weight + self.elite_score * (1 - self.ema_elite_score_weight)
+
+        score_delta = (self.elite_score - self.ema_elite_score) 
+        self.logger.info(f"Score delta: {score_delta}")
+
+
+        # prev_momentum = self.momentum
+        # self.momentum = 0.9 * self.momentum + 0.1 * score_delta
+        # momentum_delta = self.momentum - prev_momentum
+
+        # stable_range = 0.1
+
+        # if momentum_delta > stable_range:
+        #     mutation *= 0.9  # acceleration
+        # elif self.momentum < stable_range:
+        #     mutation *= 1.1
+
+
+
+        if score_delta >= 0:
+            self.mutation_std *= 0.9  # elite is improving
+            self.logger.debug(f"Decreasing mutation rate due to improvement")
+        else:
+            self.mutation_std *= 1.1  # no progress → explore more
+            self.logger.debug(f"Increasing mutation rate due to no progress")
+
+        # Clamp mutation
+        self.mutation_std = min(max(self.mutation_std, self.mutation_std_min), self.mutation_std_max)
+        self.logger.debug(f"Clamped mutation std: {self.mutation_std}")
+            
+        
 
     def _initialize_summary_writer(
         self,
@@ -685,6 +737,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 global_step=generation,
             )
         elite_avg_score = sum([agent.score for agent in self.elites]) / len(self.elites)
+        self.elite_score = elite_avg_score
+
         self.logger.info(
             f"Generation: {generation}, Elite Average Score: {elite_avg_score}"
         )
@@ -692,6 +746,13 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             self.summary_writer.add_scalar(
                 "Elite_Average_Score",
                 elite_avg_score,
+                global_step=generation,
+            )
+        self._update_mutation_std()
+        if self.summary_writer is not None:
+            self.summary_writer.add_scalar(
+                "mutation_std",
+                self.mutation_std,
                 global_step=generation,
             )
 
