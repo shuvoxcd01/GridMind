@@ -15,7 +15,7 @@ trained_agents = []
 
 for mutation_mean, mutation_std in mutation_rate_combinations:
     algorithm = NeuroEvolution(env=env, stopping_fitness=500, mutation_mean=mutation_mean, mutation_std=mutation_std)
-    trained_agents.append(algorithm.train(num_generations=1000))
+    trained_agents.append(algorithm._train(num_generations=1000))
 
 eval_env = gym.make("CartPole-v1", render_mode="human")
 
