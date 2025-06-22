@@ -23,7 +23,15 @@ class BaseEvoRLAlgorithm(BaseLearningAlgorithm):
         raise NotImplementedError
 
     @abstractmethod
-    def train(self, num_generations: int):
+    def _train(self, num_generations: int, *args, **kwargs):
         raise NotImplementedError(
             "This method should be implemented in the derived class."
+        )
+
+    def train(self, num_generations: int, save_policy: bool = True):
+        self._training_wrapper(
+            num_iter=num_generations,
+            prediction_only=False,
+            save_policy=save_policy,
+            training_fn=self._train,
         )

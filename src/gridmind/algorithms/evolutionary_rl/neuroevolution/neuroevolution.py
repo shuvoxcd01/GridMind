@@ -148,7 +148,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
 
         return sum_episode_return / average_over_episodes
 
-    def train(self, num_generations: int):
+    def _train(self, num_generations: int):
         best_agent = None
 
         for generation in trange(num_generations):
@@ -244,7 +244,7 @@ if __name__ == "__main__":
             mutation_mean=mutation_mean,
             mutation_std=mutation_std,
         )
-        trained_agents.append(algorithm.train(num_generations=1000))
+        trained_agents.append(algorithm._train(num_generations=1000))
 
     eval_env = gym.make("CartPole-v1", render_mode="human")
 

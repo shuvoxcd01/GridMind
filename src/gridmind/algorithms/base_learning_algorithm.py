@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import copy
 import os
 import time
-from typing import Optional
+from typing import Callable, Optional
 import dill
 from gridmind.policies.base_policy import BasePolicy
 import logging
@@ -180,7 +180,7 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def train(
+    def _train(
         self,
         num_episodes: Optional[int] = None,
         num_steps: Optional[int] = None,
@@ -218,7 +218,7 @@ class BaseLearningAlgorithm(ABC):
             num_steps,
             prediction_only,
             save_policy,
-            train_by_steps=True,
+            training_fn=self._train_steps,
             *args,
             **kwargs,
         )
@@ -239,17 +239,17 @@ class BaseLearningAlgorithm(ABC):
             num_episodes,
             prediction_only,
             save_policy,
-            train_by_steps=False,
+            training_fn=self._train_episodes,
             *args,
             **kwargs,
         )
 
     def _training_wrapper(
         self,
-        num_iter,
-        prediction_only,
-        save_policy,
-        train_by_steps=False,
+        num_iter: int,
+        prediction_only: bool,
+        save_policy: bool,
+        training_fn: Callable,
         *args,
         **kwargs,
     ):
@@ -266,20 +266,7 @@ class BaseLearningAlgorithm(ABC):
             if self.stop_on_divergence:
                 policy_prev = self.get_policy_cloned()
 
-            if not train_by_steps:
-                self._train_episodes(
-                    num_episodes=num_inner_iter,
-                    prediction_only=prediction_only,
-                    *args,
-                    **kwargs,
-                )
-            else:
-                self._train_steps(
-                    num_steps=num_inner_iter,
-                    prediction_only=prediction_only,
-                    *args,
-                    **kwargs,
-                )
+            training_fn(num_inner_iter, prediction_only, *args, **kwargs)
 
             if self.perform_evaluation:
                 performance_evaluation = (
