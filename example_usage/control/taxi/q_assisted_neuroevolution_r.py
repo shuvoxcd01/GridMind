@@ -1,19 +1,27 @@
+import os
 from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroevolution_r import QAssistedNeuroEvolution
 from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning_experience_r import DeepQLearningWithExperienceReplay
 from gridmind.feature_construction.embedding_feature_extractor import EmbeddingFeatureExtractor
 from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.policies.parameterized.discrete_action_mlp_policy import DiscreteActionMLPPolicy
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 from gridmind.value_estimators.action_value_estimators.q_network_with_embedding import QNetworkWithEmbedding
 import gymnasium as gym
 import logging
 
 import torch
+from gymnasium.wrappers import RecordVideo
+from datetime import datetime
+
+from data import SAVE_DATA_DIR
 
 logging.basicConfig(level=logging.INFO)
 
 env = gym.make("Taxi-v3")
+
 # one_hot_encoder = OneHotEncoder(num_classes=500)
-q_network = QNetworkWithEmbedding(num_embeddings=500, embedding_dim=64,num_hidden_layers=1, num_actions=env.action_space.n)
+# q_network = QNetworkWithEmbedding(num_embeddings=500, embedding_dim=64,num_hidden_layers=1, num_actions=env.action_space.n)
+q_network = torch.load("/Users/falguni/Study/Repositories/GitHub/GridMind/data/Taxi-v3/DeepQLearning/2025-06-22_22-03-57/q_network.pth")
 q_learner = DeepQLearningWithExperienceReplay(env = env, q_network=q_network, batch_size=512, 
                                               feature_constructor=None, write_summary=True, 
                                               target_network_update_frequency=500)
@@ -27,16 +35,28 @@ policy_creator_fn = lambda observation_shape, num_actions: DiscreteActionMLPPoli
     in_features=64,
     out_features=64,
     num_actions=num_actions,
-    in_features=64,
-    out_features=64,
-    num_hidden_layers=2, 
+    num_hidden_layers=4, 
 )
 algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_creator_fn,
                                     write_summary=True, feature_constructor=feature_constructor,
-                                    replay_buffer_capacity=5000, q_learner=q_learner, mutation_std=0.1,
-                                    evaluate_q_derived_policy=False, q_learner_num_steps=1000)
+                                    replay_buffer_capacity=5000, q_learner=q_learner, mutation_std=0.1, mutation_std_max=0.5,mutation_std_min=0.01,
+                                    evaluate_q_derived_policy=False, q_learner_num_steps=1000,
+                                    train_q_learner=False, stagnation_patience=1000)
 
-algorithm = QAssistedNeuroEvolution(env=env,policy_network_creator_fn=policy_creator_fn, write_summary=True, feature_constructor=feature_constructor, q_learner_num_steps=1000, replay_buffer_minimum_size=1000, replay_buffer_capacity=5000, q_learner=q_learner, evaluate_q_derived_policy=False, train_q_learner=False, mutation_std=0.01)
+
+
+eval_env = gym.make("Taxi-v3", render_mode="rgb_array")
+video_dir = os.path.join(SAVE_DATA_DIR, eval_env.spec.id, algorithm.name, "videos", f"-{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+os.makedirs(video_dir, exist_ok=True)
+
+eval_env = RecordVideo(
+    eval_env,
+    video_folder=video_dir,
+    episode_trigger=lambda episode_id: episode_id % 2 == 0  # record every 2nd episode
+)
+
+evaluator = BasicPerformanceEvaluator(env=eval_env, num_episodes=5, epoch_eval_interval= 10)
+algorithm.register_performance_evaluator(evaluator)
 
 try:
     best_agent = algorithm.train(

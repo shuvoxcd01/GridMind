@@ -23,7 +23,7 @@ algorithm = QAssistedNeuroEvolution(env=env, policy_network_class=AtariPolicy, w
                                     score_evaluation_num_episodes=1, num_top_k=10, reevaluate_agent_score=False)
 
 try:
-    best_agent = algorithm.train(
+    best_agent = algorithm._train(
         num_generations=10000
     )
 except KeyboardInterrupt:

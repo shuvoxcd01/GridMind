@@ -46,7 +46,7 @@ class EvoRLBasicPerformanceEvaluator(BasePerformanceEvaluator):
                 observation = self.preprocessor_fn(observation)
                 action = policy.get_action(observation)
                 observation, reward, terminated, truncated, _ = self.env.step(action)
-                episode_return += reward
+                episode_return += float(reward)
                 episode_length += 1
 
                 done = terminated or truncated

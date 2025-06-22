@@ -253,4 +253,4 @@ if __name__ == "__main__":
     algorithm = PPOOffPolicy(env=env, target_policy=policy, policy_step_size=0.0001)
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=10000, prediction_only=False)
+    algorithm._train(num_episodes=10000, prediction_only=False)

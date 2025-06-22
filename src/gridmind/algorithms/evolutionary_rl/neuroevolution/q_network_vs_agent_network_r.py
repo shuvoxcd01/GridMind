@@ -9,8 +9,9 @@ from src.gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_polic
 
 
 env = gym.make("Taxi-v3")
-one_hot_encoder = OneHotEncoder(num_classes=500)
-feature_constructor = lambda x: one_hot_encoder(x)
+# one_hot_encoder = OneHotEncoder(num_classes=500)
+# feature_constructor = lambda x: one_hot_encoder(x)
+feature_constructor = None
 
 
 def _preprocess(obs, feature_constructor=feature_constructor):
@@ -27,7 +28,7 @@ def _preprocess(obs, feature_constructor=feature_constructor):
 
 agent_network_path = "/Users/falguni/Study/Repositories/GitHub/GridMind/data/Taxi-v3/QAssistedNeuroEvolution/best_agent_networks/generation_70/best_agent_network.pth"
 # q_network_path = "/home/falguni/Study/Repositories/GridMind/data/LunarLander-v3/QAssistedNeuroEvolution/q_networks/generation_140/q_network.pth"
-q_network_path = "/Users/falguni/Study/Repositories/GitHub/GridMind/data/Taxi-v3/QAssistedNeuroEvolution/q_networks/generation_70/q_network.pth"
+q_network_path = "/Users/falguni/Study/Repositories/GitHub/GridMind/data/Taxi-v3/DeepQLearning/2025-06-22_22-03-57/q_network.pth"
 env = gym.make("Taxi-v3", render_mode="human")
 
 
@@ -38,7 +39,7 @@ q_policy = QNetworkDerivedEpsilonGreedyPolicy(
 )
 
 # for policy_name, policy in zip(["agent_policy", "q_policy"], [agent_policy, q_policy]):
-for policy_name, policy in [("agent_policy", agent_policy)]:
+for policy_name, policy in [("q_policy", q_policy)]:
     print(f"Running policy: {policy_name}")
     total_return = 0
     for i in range(2):
@@ -54,6 +55,7 @@ for policy_name, policy in [("agent_policy", agent_policy)]:
             q_prediction = q_network(obs).detach().cpu().numpy()
             print(f"Q prediction: {q_prediction}")
             print(f"Action taken: {action}")
+            print(f"Q value for action: {q_prediction[0][action]}")
             next_obs, reward, terminated, truncated, _ = env.step(action=action)
             obs = next_obs
             env.render()

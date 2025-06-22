@@ -174,7 +174,7 @@ class EvoRL:
                 )
                 self.rl_algorithm.set_value_estimator(value_estimator)
 
-            self.rl_algorithm.train(
+            self.rl_algorithm._train(
                 num_episodes=self.rl_num_episodes, prediction_only=False
             )
 
@@ -238,7 +238,7 @@ class EvoRL:
             feature_constructor=self.feature_constructor,
         )
 
-        policy_evaluator.train(num_episodes=num_train_episodes, prediction_only=True)
+        policy_evaluator._train(num_episodes=num_train_episodes, prediction_only=True)
         value_estimator = policy_evaluator.get_state_value_fn(
             force_functional_interface=False
         )

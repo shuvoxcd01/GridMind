@@ -388,7 +388,7 @@ class QAssistedNeuroEvolution:
 
             samples_added = self.replay_buffer.size() - replay_buffer_size_prev
 
-        self.q_learner.train(replay_buffer=self.replay_buffer, num_updates=10)
+        self.q_learner._train(replay_buffer=self.replay_buffer, num_updates=10)
 
     def _build_policy_network_from_state_dict(self, state_dict):
         policy = self.policy_class(

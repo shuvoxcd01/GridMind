@@ -285,4 +285,4 @@ if __name__ == "__main__":
     )
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=100000, prediction_only=False)
+    algorithm._train(num_episodes=100000, prediction_only=False)
