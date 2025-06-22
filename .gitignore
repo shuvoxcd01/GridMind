@@ -200,4 +200,6 @@ notebooks/*
 .idea/
 example_usage/*
 
+*.mp4
+*.pth
 .gitignore
