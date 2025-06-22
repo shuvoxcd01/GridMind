@@ -22,7 +22,7 @@ class EpsilonRandomizedPolicyWrapper(BasePolicyWrapper):
             return self.policy.get_action(state)
 
     def get_action_probs(self, state, action):
-        policy_action_prob = self.policy.get_action_probs(state, action)
+        policy_action_prob = self.policy.get_action_prob(state, action)
 
         action_prob = (
             1 - self.epsilon

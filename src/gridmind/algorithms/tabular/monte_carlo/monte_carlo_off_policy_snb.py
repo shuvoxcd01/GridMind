@@ -74,10 +74,10 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
                     if greedy_action != action:
                         break
 
-                target_policy_action_prob = self.target_policy.get_action_probs(
+                target_policy_action_prob = self.target_policy.get_action_prob(
                     state=state, action=action
                 )
-                behavior_policy_action_prob = self.behavior_policy.get_action_probs(
+                behavior_policy_action_prob = self.behavior_policy.get_action_prob(
                     state=state, action=action
                 )
 

@@ -42,7 +42,7 @@ class BaseQDerivedSoftPolicy(BaseSoftPolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         greedy_action = self._get_greedy_action(state)
 
         each_random_action_prob = self.epsilon / self.num_actions

@@ -23,7 +23,7 @@ def collect_episode(
         next_obs, reward, terminated, truncated, info = env.step(action)
 
         if record_action_prob:
-            action_prob = policy.get_action_probs(state=obs, action=action)
+            action_prob = policy.get_action_prob(state=obs, action=action)
             trajectory.record_step(
                 state=obs_raw, action=action, reward=reward, action_prob=action_prob
             )

@@ -12,7 +12,7 @@ class PreprocessedObservationPolicyWrapper(BasePolicyWrapper):
 
     def get_action_probs(self, state, action):
         preprocessed_state = self.preprocess_fn(state)
-        return self.policy.get_action_probs(preprocessed_state, action)
+        return self.policy.get_action_prob(preprocessed_state, action)
 
     def update(self, state, action):
         preprocessed_state = self.preprocess_fn(state)
