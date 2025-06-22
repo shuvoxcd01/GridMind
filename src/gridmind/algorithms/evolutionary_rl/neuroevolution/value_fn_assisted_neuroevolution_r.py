@@ -4,6 +4,8 @@ from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLA
 from gridmind.policies.parameterized.base_parameterized_policy import (
     BaseParameterizedPolicy,
 )
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
+from gridmind.utils.performance_evaluation.evo_rl_basic_performance_evaluator_r import EvoRLBasicPerformanceEvaluator
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,6 +33,7 @@ import torch
 from tqdm import trange
 import numpy as np
 import gymnasium as gym
+from gymnasium.wrappers import RecordVideo
 
 from data import SAVE_DATA_DIR
 
@@ -49,9 +52,10 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         _lambda: int = 1000,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
-        mutation_std_min:float=0.001,
-        mutation_std_max:float=0.1,
+        mutation_std_min: float = 0.01,
+        mutation_std_max: float = 0.1,
         ema_elite_weight: float = 0.9,
+        stagnation_patience: int = 5,
         stopping_score: Optional[float] = None,
         curate_trajectory: bool = True,
         agent_name_prefix: str = "evo_",
@@ -86,13 +90,14 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.mutation_std_max = mutation_std_max
         self.mutation_std_min = mutation_std_min
         self.momentum: float = 0.0
-        self.elite_score_history_limit:int=10
-        self.elite_scores_history:List[float] = []
-        self.elite_score:Optional[float] = None
-        self.ema_elite_score:Optional[float] = None
+        self.stagnation_patience: int = stagnation_patience
+        self.elite_score_history_limit: int = 10
+        self.elite_scores_history: List[float] = []
+        self.elite_score: Optional[float] = None
+        self.ema_elite_score: Optional[float] = None
         self.ema_elite_score_weight = ema_elite_weight
-        self.elite_score_previous:Optional[float]=None
-        self.generations_since_last_elite_update:int=0
+        self.elite_score_previous: Optional[float] = None
+        self.generations_since_last_elite_score_change: int = 0
         self.curate_trajectory = curate_trajectory
         self.feature_constructor = feature_constructor
         self.observation_shape = (
@@ -109,7 +114,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self._population_fitness = None
         self.num_top_k = num_top_k
 
-        self._generation = 0
+        self._generation_count_global = 0
         self.policy_network_class = policy_network_class
         self.policy_network_creator_fn = policy_network_creator_fn
 
@@ -187,43 +192,70 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             self.population = population
 
     def _update_mutation_std(self):
-        assert self.elite_score is not None, "Elite score must be set before updating mutation rate"
+        assert (
+            self.elite_score is not None
+        ), "Elite score must be set before updating mutation rate"
+
+        if self.elite_score_previous is None:
+            self.elite_score_previous = self.elite_score
+            self.generations_since_last_elite_score_change = 0
+
+        elif self.elite_score_previous == self.elite_score:
+            self.generations_since_last_elite_score_change += 1
+
+        else:
+            self.elite_score_previous = self.elite_score
+            self.generations_since_last_elite_score_change = 0
+
+        if self.generations_since_last_elite_score_change >= self.stagnation_patience:
+            self.mutation_std = max(self.mutation_std * 0.9, self.mutation_std_min)
+            self.logger.info(
+                f"Mutation std decreased to {self.mutation_std} due to no change in elite score for {self.generations_since_last_elite_score_change} generations"
+            )
+            self.generations_since_last_elite_score_change = 0
+            return
 
         if self.ema_elite_score is None:
             self.ema_elite_score = self.elite_score
             return
-        
-        self.ema_elite_score = self.ema_elite_score * self.ema_elite_score_weight + self.elite_score * (1 - self.ema_elite_score_weight)
 
-        score_delta = (self.elite_score - self.ema_elite_score) 
+        self.ema_elite_score = (
+            self.ema_elite_score * self.ema_elite_score_weight
+            + self.elite_score * (1 - self.ema_elite_score_weight)
+        )
+
+        score_delta = self.elite_score - self.ema_elite_score
         self.logger.info(f"Score delta: {score_delta}")
 
-
-        # prev_momentum = self.momentum
-        # self.momentum = 0.9 * self.momentum + 0.1 * score_delta
-        # momentum_delta = self.momentum - prev_momentum
+        prev_momentum = self.momentum
+        self.momentum = 0.9 * self.momentum + 0.1 * score_delta
+        momentum_delta = self.momentum - prev_momentum
 
         # stable_range = 0.1
+        self.logger.info(
+            f"Momentum: {self.momentum}, Previous Momentum: {prev_momentum}, Momentum Delta: {momentum_delta}"
+        )
+        if momentum_delta > 0:
+            self.mutation_std *= 0.98  # acceleration
+        elif momentum_delta < 0:
+            self.mutation_std *= 1.02  # deceleration
 
-        # if momentum_delta > stable_range:
-        #     mutation *= 0.9  # acceleration
-        # elif self.momentum < stable_range:
-        #     mutation *= 1.1
+        self.logger.debug(
+            f"Updated mutation std: {self.mutation_std}, Momentum: {self.momentum}"
+        )
 
-
-
-        if score_delta >= 0:
-            self.mutation_std *= 0.9  # elite is improving
-            self.logger.debug(f"Decreasing mutation rate due to improvement")
-        else:
-            self.mutation_std *= 1.1  # no progress → explore more
-            self.logger.debug(f"Increasing mutation rate due to no progress")
+        # if score_delta >= 0:
+        #     self.mutation_std *= 0.9  # elite is improving
+        #     self.logger.debug(f"Decreasing mutation rate due to improvement")
+        # else:
+        #     self.mutation_std *= 1.1  # no progress → explore more
+        #     self.logger.debug(f"Increasing mutation rate due to no progress")
 
         # Clamp mutation
-        self.mutation_std = min(max(self.mutation_std, self.mutation_std_min), self.mutation_std_max)
+        self.mutation_std = min(
+            max(self.mutation_std, self.mutation_std_min), self.mutation_std_max
+        )
         self.logger.debug(f"Clamped mutation std: {self.mutation_std}")
-            
-        
 
     def _initialize_summary_writer(
         self,
@@ -255,7 +287,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
     @property
     def generation(self):
-        return self._generation
+        return self._generation_count_global
 
     def extract_policies_from_population(self):
         policies = []
@@ -302,13 +334,16 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             for network in population
         ]
 
+    def _get_policy(self):
+        return self.get_best(unwrapped=True)
+
     def set_population(self, population: List[NeuroAgent]):
         self.population = population
 
     def add_individual(self, individual: NeuroAgent):
         self.population.append(individual)
 
-    def add_inidvidual_from_policy(
+    def add_individual_from_policy(
         self,
         policy: DiscreteActionMLPPolicy,
         generation: int = None,
@@ -348,6 +383,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 observation_shape=self.observation_shape,
                 num_actions=self.num_actions,
             )
+
+
         spawned_individual = NeuroAgent(
             network=network,
             starting_generation=generation,
@@ -474,6 +511,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         # Compute fitness as the mean Q-value
         fitness = q_values.mean().item()
 
+        self.logger.info(f"Mean fitness computed from Q-values: {q_values.mean().item()}")
+        self.logger.info(f"Sum fitness computed from Q-values: {q_values.sum().item()}")
+
         return fitness
 
     def train_q_fn(
@@ -502,11 +542,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 if assign_score:
                     agent.score = score
 
-        self.q_learner.train(
+        self.q_learner._train(
             num_steps=num_steps, prediction_only=False, replay_buffer=self.replay_buffer
         )
 
-    def train(self, num_generations: int):
+    def _train(self, num_generations: int, *args, **kwargs):
         if self.population is None:
             self.logger.debug("Population is None. Initializing population.")
             self.population = self.initialize_population()
@@ -528,7 +568,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 num_steps=self.q_learner_num_steps,
             )
 
-        for generation in trange(num_generations):
+        for num_gen in trange(num_generations):
             sample_observations, _, _, _, _, _ = self.replay_buffer.sample(
                 self.q_learner_batch_size
             )
@@ -542,18 +582,21 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 self.population
             )
             self.logger.info(
-                f"Generation: {generation}, Average Fitness: {average_fitness}"
+                f"Generation: {self.generation}, Average Fitness: {average_fitness}"
             )
             if self.summary_writer is not None:
                 self.summary_writer.add_scalar(
                     "Population_Average_Fitness",
                     average_fitness,
-                    global_step=generation,
+                    global_step=self.generation,
                 )
 
             self.top_k = Selection.truncation_selection(
                 population=self.population, num_selection=self.num_top_k
             )
+
+            #ToDo: Remove
+            #self.top_k = Selection.random_selection(population=self.population, num_selection=self.num_top_k)
 
             # for elite in self.elites:
             #     if elite.id in [agent.id for agent in self.top_k]:
@@ -562,7 +605,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             top_k_ids = [agent.id for agent in self.top_k]
             # export top-k ids for this generation
             with open("top_k_ids.txt", "a") as f:
-                f.write(f"Generation {generation}: {', '.join(top_k_ids)}\n")
+                f.write(f"Generation {self.generation}: {', '.join(top_k_ids)}\n")
 
             for agent in self.top_k:
                 if agent.score is None or self.reevaluate_agent_score:
@@ -590,6 +633,12 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                                 f"Elite agent {agent.name} replaced agent {elite.name}"
                             )
                             break
+                        elif agent.score == elite.score and agent.fitness > elite.fitness:
+                            self.elites[i] = agent
+                            self.logger.info(
+                                f"Elite agent {agent.name} replaced agent {elite.name} with equal score but better fitness"
+                            )
+                            break
 
                 if (
                     self.best_agent is None
@@ -604,13 +653,13 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                         self.summary_writer.add_scalar(
                             "Best_Agent_Score",
                             self.best_agent.score,
-                            global_step=generation,
+                            global_step=self.generation,
                         )
 
                         self.summary_writer.add_scalar(
                             "Best_Agent_Fitness",
                             self.best_agent.fitness,
-                            global_step=generation,
+                            global_step=self.generation,
                         )
 
                 if (
@@ -627,10 +676,10 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                     "Elite agents have duplicate IDs. This should not happen."
                 )
 
-            self._record_top_k_metrics(generation)
-            self._record_elites_metrics(generation)
+            self._record_top_k_metrics(self.generation)
+            self._record_elites_metrics(self.generation)
 
-            if generation % 10 == 0 and self.evaluate_q_derived_policy:
+            if self.generation % 10 == 0 and self.evaluate_q_derived_policy:
                 q_derived_policy = self.q_learner.get_policy()
                 self.logger.debug("Evaluating Q Derived Policy")
                 q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
@@ -641,7 +690,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                         self.env_name,
                         self.name,
                         "q_networks",
-                        f"generation_{generation}",
+                        f"generation_{self.generation}",
                     )
                 )
                 self.save_best_agent_network(
@@ -650,7 +699,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                         self.env_name,
                         self.name,
                         "best_agent_networks",
-                        f"generation_{generation}",
+                        f"generation_{self.generation}",
                     )
                 )
 
@@ -658,12 +707,12 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                     self.summary_writer.add_scalar(
                         "Q_Derived_Policy_Score",
                         q_derived_policy_score,
-                        global_step=generation,
+                        global_step=self.generation,
                     )
 
             if self.train_q_learner:
                 self.logger.info(
-                    f"Training Q-learner for {self.q_learner_num_steps} steps in generation {generation}."
+                    f"Training Q-learner for {self.q_learner_num_steps} steps in generation {self.generation}."
                 )
                 self.train_q_fn(
                     selection_fn=Selection.fitness_proportionate_selection,
@@ -696,6 +745,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                         child.network, mutated_param_vector
                     )
                     self.population.append(child)
+
+            self._generation_count_global += 1
 
         return self.best_agent
 
@@ -830,6 +881,21 @@ if __name__ == "__main__":
 
     env = gym.make("CartPole-v1")
 
+    # Create environment
+    eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
+
+    # Define the video save directory
+    video_dir = "./videos"
+
+    # Wrap the environment with RecordVideo
+    eval_env = RecordVideo(
+        eval_env,
+        video_folder=video_dir,
+        episode_trigger=lambda episode_id: episode_id % 5 == 0  # record every 5th episode
+    )
+
+    evaluator = BasicPerformanceEvaluator(env=eval_env, num_episodes=5, epoch_eval_interval= 10)
+
     policy_creator = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
         observation_shape=observation_shape,
         num_actions=num_actions,
@@ -846,7 +912,11 @@ if __name__ == "__main__":
         replay_buffer_minimum_size=500,
     )
 
-    algorithm.train(num_generations=25)
+    algorithm.register_performance_evaluator(
+        evaluator=evaluator,
+    )
+
+    algorithm.train(num_generations=250)
     env_name = env.spec.id if env.spec is not None else "unknown"
     algorithm_name = algorithm.name
     q_network_save_dir = os.path.join(
