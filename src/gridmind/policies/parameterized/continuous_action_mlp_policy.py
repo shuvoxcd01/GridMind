@@ -79,7 +79,7 @@ class ContinuousActionMLPPolicy(BaseParameterizedPolicy):
 
         return means, stds
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         means, stds = self.get_statistic(state)
 
         density = (1 / (stds * torch.sqrt(torch.tensor(2 * torch.pi)))) * torch.exp(

@@ -55,7 +55,7 @@ class ActorCriticPolicy(nn.Module, BasePolicy):
 
         return action.detach().cpu().item()
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         logits = self.actor(state)
         dist = Categorical(logits=logits)
 

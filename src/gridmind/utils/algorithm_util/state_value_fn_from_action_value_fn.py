@@ -12,7 +12,7 @@ def get_state_value_fn(
     state_value_fn = lambda state: sum(
         [
             action_value_fn(state, action)
-            * policy.get_action_probs(state=state, action=action)
+            * policy.get_action_prob(state=state, action=action)
             for action in actions
         ]
     )

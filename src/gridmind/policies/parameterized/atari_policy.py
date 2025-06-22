@@ -82,7 +82,7 @@ class AtariPolicy(BaseParameterizedPolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         state = self.add_batch_dim_if_necessary(state)
         logits = self.forward(state)
         dist = Categorical(logits=logits)

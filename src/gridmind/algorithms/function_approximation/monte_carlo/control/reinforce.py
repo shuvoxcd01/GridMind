@@ -105,7 +105,7 @@ class Reinforce(BaseLearningAlgorithm):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
 
-                log_prob = torch.log(self.policy.get_action_probs(obs, action))
+                log_prob = torch.log(self.policy.get_action_prob(obs, action))
 
                 policy_grads = torch.autograd.grad(
                     log_prob,

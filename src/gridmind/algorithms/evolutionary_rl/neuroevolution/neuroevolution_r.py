@@ -247,7 +247,7 @@ class NeuroEvolution:
             while not done:
                 preprocessed_obs = self._preprocess(obs)
                 action = policy.get_action(preprocessed_obs)
-                action_prob = policy.get_action_probs(preprocessed_obs, action)
+                action_prob = policy.get_action_prob(preprocessed_obs, action)
                 next_obs, reward, terminated, truncated, info = self.env.step(action)
                 if self.curate_trajectory and reward != 0:
                     add_trajectory = True

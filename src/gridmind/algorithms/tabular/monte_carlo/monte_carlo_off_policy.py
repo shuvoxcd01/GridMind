@@ -85,10 +85,10 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
                     greedy_action = np.argmax(self.q_values[state])
                     self.target_policy.update(state=state, action=greedy_action)
 
-                target_policy_action_prob = self.target_policy.get_action_probs(
+                target_policy_action_prob = self.target_policy.get_action_prob(
                     state=state, action=action
                 )
-                behavior_policy_action_prob = self.behavior_policy.get_action_probs(
+                behavior_policy_action_prob = self.behavior_policy.get_action_prob(
                     state=state, action=action
                 )
 

@@ -139,7 +139,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
                 self.logger.debug(f"Value grads: {value_grads}")
 
                 policy_grads = torch.autograd.grad(
-                    torch.log(self.policy.get_action_probs(observation, action)),
+                    torch.log(self.policy.get_action_prob(observation, action)),
                     self.policy.parameters(),
                 )
                 self.logger.debug(f"Policy grads: {policy_grads}")

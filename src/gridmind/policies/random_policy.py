@@ -25,7 +25,7 @@ class RandomPolicy(BasePolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         action_probs = 1 / self.num_actions
 
         return action_probs

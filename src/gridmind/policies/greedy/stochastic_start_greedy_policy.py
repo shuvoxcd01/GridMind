@@ -25,7 +25,7 @@ class StochasticStartGreedyPolicy(BasePolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         policy_act = self.get_action(state)
 
         action_probs = 1.0 if action == policy_act else 0

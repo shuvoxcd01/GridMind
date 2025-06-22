@@ -192,7 +192,7 @@ class ReinforceOffPolicyExperience(BaseLearningAlgorithm):
             obs = self._preprocess(obs)
             discounted_return = discounted_returns[timestep]
 
-            target_action_prob = self.target_policy.get_action_probs(obs, action)
+            target_action_prob = self.target_policy.get_action_prob(obs, action)
             behavior_action_prob = info["action_prob"]
             value_pred = self.value_estimator(obs)
 

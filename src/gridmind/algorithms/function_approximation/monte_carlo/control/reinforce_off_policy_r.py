@@ -148,8 +148,8 @@ class ReinforceOffPolicy(BaseLearningAlgorithm):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = discounted_returns[timestep]
 
-                target_action_prob = self.target_policy.get_action_probs(obs, action)
-                behavior_action_prob = self.behavior_policy.get_action_probs(
+                target_action_prob = self.target_policy.get_action_prob(obs, action)
+                behavior_action_prob = self.behavior_policy.get_action_prob(
                     obs, action
                 )
                 value_pred = self.value_estimator(obs)

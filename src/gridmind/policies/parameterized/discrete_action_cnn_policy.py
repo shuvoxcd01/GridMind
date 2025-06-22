@@ -56,7 +56,7 @@ class DiscreteActionCNNPolicy(BaseParameterizedPolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         action_probs = self.forward(state)
 
         action_probs = F.softmax(action_probs, dim=-1)

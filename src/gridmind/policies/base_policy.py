@@ -11,7 +11,7 @@ class BasePolicy(ABC):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod

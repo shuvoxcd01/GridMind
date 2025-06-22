@@ -127,7 +127,7 @@ class PPOOffPolicy(BaseLearningAlgorithm):
                         # action, log_prob, _, cur_state_value = self.target_policy.get_action_and_value(observation)
                         cur_state_value = self.target_policy.get_value(observation)
                         action = self.behavior_policy.get_action(observation)
-                        target_action_prob = self.target_policy.get_action_probs(
+                        target_action_prob = self.target_policy.get_action_prob(
                             observation, action
                         )
                         # behavior_action_prob = self.behavior_policy.get_action_probs(observation, action)
@@ -185,7 +185,7 @@ class PPOOffPolicy(BaseLearningAlgorithm):
                         ).reshape(-1, 1)
                         minibatch_behavior_action_probs = torch.tensor(
                             [
-                                self.behavior_policy.get_action_probs(o, a)
+                                self.behavior_policy.get_action_prob(o, a)
                                 for o, a in zip(
                                     minibatch_observations, minibatch_actions
                                 )
