@@ -41,7 +41,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
             summary_dir=summary_dir,
             write_summary=write_summary,
         )
-        self.observation_shape = env.observation_space.shape
+        self.observation_shape = self._determine_observation_shape()
         self.num_actions = env.action_space.n
         self.step_size = step_size
         self.discount_factor = discount_factor
