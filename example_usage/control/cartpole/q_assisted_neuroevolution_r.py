@@ -11,21 +11,21 @@ from data import SAVE_DATA_DIR
 env = gym.make("CartPole-v1")
 eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
-evaluator = BasicPerformanceEvaluator(env=eval_env, num_episodes=5, epoch_eval_interval= 10)
 
-policy_creator = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
-    observation_shape=observation_shape,
-    num_actions=num_actions,
-    num_hidden_layers=2,
-)
 
-q_lrs=[0.1, 0.01, 0.001, 0.0001]
-mutation_stds = [0.1, 0.01, 0.001]
+q_lrs=[0.001] #[0.1, 0.01, 0.001, 0.0001]
+mutation_stds = [0.1] #[0.1, 0.01, 0.001]
 
 for q_lr in q_lrs:
     for mutation_std in mutation_stds:
         print(f"Q-Learning Rate: {q_lr}, Mutation Std: {mutation_std}")
+        evaluator = BasicPerformanceEvaluator(env=eval_env, num_episodes=5, epoch_eval_interval= 10)
 
+        policy_creator = lambda observation_shape, num_actions: DiscreteActionMLPPolicy(
+            observation_shape=observation_shape,
+            num_actions=num_actions,
+            num_hidden_layers=2,
+        )
 
         algorithm = QAssistedNeuroEvolution(
             env=env,
@@ -36,13 +36,18 @@ for q_lr in q_lrs:
             q_learner_num_steps=500,
             q_step_size= q_lr,
             mutation_std=mutation_std,
+            replay_buffer_minimum_size= 1000,
+            replay_buffer_capacity=5000,
+            evaluate_q_derived_policy=True,
+            train_q_learner=True,
+            update_mutation_std=False,
         )
 
         algorithm.register_performance_evaluator(
             evaluator=evaluator,
         )
 
-        algorithm.train(num_generations=250)
+        algorithm.train(num_generations=100)
 
 
         # Save the Q-network and best agent network

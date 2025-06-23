@@ -24,6 +24,7 @@ class NeuroAgent(object):
         self._parent_id = parent_id
         self.name_prefix = name_prefix
         self.score = score
+        self.info = {}
 
     def __repr__(self):
         return f"NeuroAgent(id={self.id}, fitness={self.fitness}, starting_generation={self.starting_generation})"
