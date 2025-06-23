@@ -29,8 +29,10 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         write_summary=False,
         device: Optional[str] = None,
         target_network_update_frequency: int = 1000,
+        tau: float = 0.005,
+        use_soft_update: bool = True,
         add_graph: bool = True,
-        tau: float = 0.005 
+
     ):
         super().__init__(
             name="DeepQLearningWithExperienceReplay",
@@ -49,6 +51,16 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.target_network_update_frequency = target_network_update_frequency
         self.add_graph = add_graph
         self.tau = tau  
+        self.use_soft_update = use_soft_update
+
+        if self.use_soft_update:
+            self.logger.info(
+                f"Using soft update for target network with tau = {self.tau}. Parameter 'target_network_update_frequency' will be ignored."
+            )
+        else:
+            self.logger.info(
+                f"Using hard update for target network every {self.target_network_update_frequency} steps. Parameter 'tau' will be ignored."
+            )
 
         self.device = (
             device
@@ -164,15 +176,17 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
             loss.backward()
             self.optimizer.step()
 
-            if self.global_step % self.target_network_update_frequency == 0:
-                # Update target network
+            # Update target network
+            if self.use_soft_update:
                 for target_param, online_param in zip(
                     self.q_target.parameters(), self.q_online.parameters()
                 ):
                     target_param.data.copy_(
                         self.tau * online_param.data + (1 - self.tau) * target_param.data
                     )
-                # self.q_target.load_state_dict(self.q_online.state_dict())
+
+            elif self.global_step % self.target_network_update_frequency == 0:
+                self.q_target.load_state_dict(self.q_online.state_dict())
 
             self.global_step += 1
 
