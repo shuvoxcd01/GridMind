@@ -52,6 +52,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         _lambda: int = 1000,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
+        update_mutation_std: bool = True,
         mutation_std_min: float = 0.01,
         mutation_std_max: float = 0.1,
         ema_elite_weight: float = 0.9,
@@ -74,13 +75,14 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         summary_dir: Optional[str] = None,
         train_q_learner: bool = True,
         num_individuals_to_train_q_fn: int = 10,
-        num_elites: int = 5,
+        num_elites: int = 5, # Experiment: increase number of elites?
         score_evaluation_num_episodes: int = 10,
         fitness_evaluation_num_samples: int = 1000,
         reevaluate_agent_score: bool = False,
         render: bool = False,
         evaluate_q_derived_policy: bool = True,
         curate_elite_states: bool = True,
+        log_random_k_score:bool = True,
     ):
         super().__init__(name="QAssistedNeuroEvolution", env=env, write_summary=False)
         self.logger.setLevel(logging.INFO)
@@ -89,6 +91,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self._lambda = _lambda
         self.mutation_mean = mutation_mean
         self.mutation_std = mutation_std
+        self.should_update_mutation_std = update_mutation_std
         self.mutation_std_max = mutation_std_max
         self.mutation_std_min = mutation_std_min
         self.momentum: float = 0.0
@@ -121,6 +124,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.best_agent = None
         self._population_fitness = None
         self.num_top_k = num_top_k
+        self.log_random_k_score = log_random_k_score
 
         self._generation_count_global = 0
         self.policy_network_class = policy_network_class
@@ -456,11 +460,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         return mutated_chromosome
 
     @torch.no_grad
-    def evaluate_score(self, policy: DiscreteActionMLPPolicy):
+    def evaluate_score(self, policy: DiscreteActionMLPPolicy, add_to_replay_buffer: bool = True):
         sum_episode_return = 0.0
 
         for i in range(self.score_evaluation_num_episodes):
-            sum_episode_return += self.collect_episode(policy)
+            sum_episode_return += self.collect_episode(policy, add_to_replay_buffer=add_to_replay_buffer)
 
         self.logger.debug(f"Sum episode return: {sum_episode_return}")
         self.logger.debug(
@@ -472,7 +476,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         return sum_episode_return / self.score_evaluation_num_episodes
 
-    def collect_episode(self, policy):
+    def collect_episode(self, policy, add_to_replay_buffer: bool = True):
         obs, info = self.env.reset()
         done = False
         episode_return = 0.0
@@ -484,14 +488,15 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
             episode_return += float(reward)
             done = terminated or truncated
-            self.replay_buffer.store(
-                state=obs,
-                action=action,
-                reward=reward,
-                next_state=next_obs,
-                terminated=terminated,
-                truncated=truncated,
-            )
+            if add_to_replay_buffer:
+                self.replay_buffer.store(
+                    state=obs,
+                    action=action,
+                    reward=reward,
+                    next_state=next_obs,
+                    terminated=terminated,
+                    truncated=truncated,
+                )
             obs = next_obs
 
         self.logger.debug(f"Episode return: {episode_return}")
@@ -526,12 +531,15 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.avg_q_value = self.avg_q_value * 0.99 + expected_q_values.mean().item() * 0.01
 
         # Compute fitness as the mean Q-value
-        fitness = expected_q_values.mean().item()
+        mean_expected_q = expected_q_values.mean().item()
+        sum_expected_q = expected_q_values.sum().item()
 
-        self.logger.info(f"Mean fitness computed from expected Q-values: {expected_q_values.mean().item()}")
-        self.logger.info(f"Sum fitness computed from expected Q-values: {expected_q_values.sum().item()}")
+        fitness = mean_expected_q
 
-        return fitness
+        self.logger.info(f"Mean fitness computed from expected Q-values: {mean_expected_q}")
+        self.logger.info(f"Sum fitness computed from expected Q-values: {sum_expected_q}")
+
+        return fitness, mean_expected_q, sum_expected_q
 
     def train_q_fn(
         self,
@@ -591,29 +599,18 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             )
 
             for agent in self.population:
-                agent.fitness = self.evaluate_fitness_with_q_fn(
+                agent.fitness, agent.info["mean_expected_q"], agent.info["sum_expected_q"] = self.evaluate_fitness_with_q_fn(
                     agent.network, sample_observations
                 )
 
-            average_fitness = sum([agent.fitness for agent in self.population]) / len(
-                self.population
-            )
-            self.logger.info(
-                f"Generation: {self.generation}, Average Fitness: {average_fitness}"
-            )
-            if self.summary_writer is not None:
-                self.summary_writer.add_scalar(
-                    "Population_Average_Fitness",
-                    average_fitness,
-                    global_step=self.generation,
-                )
+            self._calculate_and_log_population_statistics()
 
             self.top_k = Selection.truncation_selection(
                 population=self.population, num_selection=self.num_top_k
             )
 
-            #ToDo: Remove
-            # self.top_k = Selection.random_selection(population=self.population, num_selection=self.num_top_k)
+            if self.log_random_k_score:
+                self._record_random_k_scores()
 
             # for elite in self.elites:
             #     if elite.id in [agent.id for agent in self.top_k]:
@@ -767,6 +764,65 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         return self.best_agent
 
+    def _calculate_and_log_population_statistics(self):
+        average_fitness = sum([agent.fitness for agent in self.population]) / len(
+                self.population
+            )
+        avg_mean_expected_q = sum(
+                [agent.info["mean_expected_q"] for agent in self.population]
+            ) / len(self.population)
+        avg_sum_expected_q = sum(
+                [agent.info["sum_expected_q"] for agent in self.population]
+            ) / len(self.population)
+
+
+        self.logger.info(
+                f"Generation: {self.generation}, Average Fitness: {average_fitness}"
+            )
+        self.logger.info(
+                f"Generation: {self.generation}, Average Mean Expected Q: {avg_mean_expected_q}"
+            )
+        self.logger.info(
+                f"Generation: {self.generation}, Average Sum Expected Q: {avg_sum_expected_q}"
+            )
+
+        if self.summary_writer is not None:
+            self.summary_writer.add_scalar(
+                    "Population_Average_Fitness",
+                    average_fitness,
+                    global_step=self.generation,
+                )
+            self.summary_writer.add_scalar(
+                    "Population_Average_Mean_Expected_Q",
+                    avg_mean_expected_q,
+                    global_step=self.generation,
+                )
+            self.summary_writer.add_scalar(
+                    "Population_Average_Sum_Expected_Q",
+                    avg_sum_expected_q,
+                    global_step=self.generation,
+                )
+
+    def _record_random_k_scores(self):
+        random_k = Selection.random_selection(
+                    population=self.population, num_selection=self.num_top_k
+                )
+        random_k_scores = [self.evaluate_score(
+                    policy=agent.network, add_to_replay_buffer=False) for agent in random_k
+                ]
+        random_k_avg_score = sum(random_k_scores) / len(random_k_scores)
+
+        self.logger.info(
+                    f"Generation: {self.generation}, Random K Average Score: {random_k_avg_score}"
+                )
+
+        if self.summary_writer is not None:
+            self.summary_writer.add_scalar(
+                        "Random_K_Average_Score",
+                        random_k_avg_score,
+                        global_step=self.generation,
+                    )
+
     def _record_top_k_metrics(self, generation):
         top_k_avg_fitness = sum([agent.fitness for agent in self.top_k]) / len(
             self.top_k
@@ -816,7 +872,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                 elite_avg_score,
                 global_step=generation,
             )
-        self._update_mutation_std()
+        if self.should_update_mutation_std:
+            self._update_mutation_std()
+
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
                 "mutation_std",
