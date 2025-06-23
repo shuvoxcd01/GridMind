@@ -33,8 +33,8 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         tau: float = 0.005,
         use_soft_update: bool = True,
         add_graph: bool = True,
-        max_grad_norm: float = 5.0
-
+        max_grad_norm: float = 5.0,
+        loss_fn: Callable = torch.nn.functional.smooth_l1_loss,  # huber loss
     ):
         super().__init__(
             name="DeepQLearningWithExperienceReplay",
@@ -55,6 +55,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.tau = tau  
         self.use_soft_update = use_soft_update
         self.max_grad_norm = max_grad_norm
+        self.loss_fn = loss_fn
 
         if self.use_soft_update:
             self.logger.info(
@@ -170,7 +171,9 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
             q_values = (
                 self.q_online(observations).gather(1, actions.unsqueeze(1)).squeeze()
             )
-            loss = torch.nn.functional.mse_loss(q_values, target_q_values)
+            # Compute loss
+            loss = self.loss_fn(q_values, target_q_values)
+
             if self.summary_writer is not None:
                 self.summary_writer.add_scalar(
                     "q_learning_loss", loss.item(), global_step=self.global_step
