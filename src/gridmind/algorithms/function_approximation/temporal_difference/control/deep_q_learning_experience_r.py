@@ -30,6 +30,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         device: Optional[str] = None,
         target_network_update_frequency: int = 1000,
         add_graph: bool = True,
+        tau: float = 0.005 
     ):
         super().__init__(
             name="DeepQLearningWithExperienceReplay",
@@ -47,6 +48,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.summary_writer = None
         self.target_network_update_frequency = target_network_update_frequency
         self.add_graph = add_graph
+        self.tau = tau  
 
         self.device = (
             device
@@ -164,7 +166,13 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
 
             if self.global_step % self.target_network_update_frequency == 0:
                 # Update target network
-                self.q_target.load_state_dict(self.q_online.state_dict())
+                for target_param, online_param in zip(
+                    self.q_target.parameters(), self.q_online.parameters()
+                ):
+                    target_param.data.copy_(
+                        self.tau * online_param.data + (1 - self.tau) * target_param.data
+                    )
+                # self.q_target.load_state_dict(self.q_online.state_dict())
 
             self.global_step += 1
 
