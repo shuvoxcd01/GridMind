@@ -76,9 +76,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         num_individuals_to_train_q_fn: int = 10,
         num_elites: int = 5,
         score_evaluation_num_episodes: int = 10,
+        fitness_evaluation_num_samples: int = 1000,
         reevaluate_agent_score: bool = False,
         render: bool = False,
         evaluate_q_derived_policy: bool = True,
+        curate_elite_states: bool = True,
     ):
         super().__init__(name="QAssistedNeuroEvolution", env=env, write_summary=False)
         self.logger.setLevel(logging.INFO)
@@ -100,6 +102,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.generations_since_last_elite_score_change: int = 0
         self.curate_trajectory = curate_trajectory
         self.feature_constructor = feature_constructor
+        self.fitness_evaluation_num_samples = fitness_evaluation_num_samples
         self.observation_shape = (
             self.env.observation_space.shape
             if feature_constructor is None
@@ -108,6 +111,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.highest_score_possible = stopping_score
         self.agent_name_prefix = agent_name_prefix
         self.num_individuals_to_train_q_fn = num_individuals_to_train_q_fn
+        self.curate_elite_states = curate_elite_states
+        self.elite_states_buffer = SimpleReplayBuffer()
+        self.episode_states_buffer = SimpleReplayBuffer()
+        self.avg_q_value = 0.0
+
 
         self.num_actions = self.env.action_space.n
         self.best_agent = None
@@ -128,9 +136,9 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             replay_buffer_minimum_size
             if replay_buffer_minimum_size is not None
             else (
-                min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2)
+                min(100 * self.q_learner_batch_size, replay_buffer_capacity // 2, self.fitness_evaluation_num_samples * 2)
                 if replay_buffer_capacity is not None
-                else 100 * self.q_learner_batch_size
+                else max(100 * self.q_learner_batch_size, self.fitness_evaluation_num_samples * 2)
             )
         )
         if q_network_preferred_device is not None:
@@ -178,8 +186,8 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             assert (
                 summary_dir is not None or SAVE_DATA_DIR is not None
             ), "Please specify summary_dir"
-
-            self._initialize_summary_writer(summary_dir, self.env_name)
+            extra_info = f"_q_lr_{q_step_size}_mutation_std_{mutation_std}"
+            self._initialize_summary_writer(summary_dir, self.env_name, extra_info=extra_info)
             self.q_learner.set_summary_writer(self.summary_writer)
         else:
             self.summary_writer = None
@@ -271,7 +279,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             env_name,
             "summaries",
             self.name,
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S") + extra_info,
         )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
@@ -499,20 +507,29 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         # Get actions from the policy
         actions = policy.get_actions(preprocessed_observations)
+        action_probs = policy.get_action_probs(preprocessed_observations)
 
         # Compute Q-values
+        # q_values = (
+        #     self.q_learner.predict(observations, is_preprocessed=False)
+        #     .to("cpu")
+        #     .gather(1, action_probs.unsqueeze(1))
+        #     .squeeze()
+        # )
         q_values = (
             self.q_learner.predict(observations, is_preprocessed=False)
             .to("cpu")
-            .gather(1, actions)
-            .squeeze()
         )
 
-        # Compute fitness as the mean Q-value
-        fitness = q_values.mean().item()
+        expected_q_values = (q_values*action_probs).sum(dim=1)
 
-        self.logger.info(f"Mean fitness computed from Q-values: {q_values.mean().item()}")
-        self.logger.info(f"Sum fitness computed from Q-values: {q_values.sum().item()}")
+        self.avg_q_value = self.avg_q_value * 0.99 + expected_q_values.mean().item() * 0.01
+
+        # Compute fitness as the mean Q-value
+        fitness = expected_q_values.mean().item()
+
+        self.logger.info(f"Mean fitness computed from expected Q-values: {expected_q_values.mean().item()}")
+        self.logger.info(f"Sum fitness computed from expected Q-values: {expected_q_values.sum().item()}")
 
         return fitness
 
@@ -570,7 +587,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         for num_gen in trange(num_generations):
             sample_observations, _, _, _, _, _ = self.replay_buffer.sample(
-                self.q_learner_batch_size
+                self.fitness_evaluation_num_samples
             )
 
             for agent in self.population:
@@ -596,7 +613,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             )
 
             #ToDo: Remove
-            #self.top_k = Selection.random_selection(population=self.population, num_selection=self.num_top_k)
+            # self.top_k = Selection.random_selection(population=self.population, num_selection=self.num_top_k)
 
             # for elite in self.elites:
             #     if elite.id in [agent.id for agent in self.top_k]:
@@ -884,15 +901,15 @@ if __name__ == "__main__":
     # Create environment
     eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
-    # Define the video save directory
-    video_dir = "./videos"
+    # # Define the video save directory
+    # video_dir = "./videos"
 
-    # Wrap the environment with RecordVideo
-    eval_env = RecordVideo(
-        eval_env,
-        video_folder=video_dir,
-        episode_trigger=lambda episode_id: episode_id % 5 == 0  # record every 5th episode
-    )
+    # # Wrap the environment with RecordVideo
+    # eval_env = RecordVideo(
+    #     eval_env,
+    #     video_folder=video_dir,
+    #     episode_trigger=lambda episode_id: episode_id % 5 == 0  # record every 5th episode
+    # )
 
     evaluator = BasicPerformanceEvaluator(env=eval_env, num_episodes=5, epoch_eval_interval= 10)
 
@@ -909,7 +926,6 @@ if __name__ == "__main__":
         stopping_score=500,
         q_learner_target_network_update_frequency=250,
         q_learner_num_steps=500,
-        replay_buffer_minimum_size=500,
     )
 
     algorithm.register_performance_evaluator(
