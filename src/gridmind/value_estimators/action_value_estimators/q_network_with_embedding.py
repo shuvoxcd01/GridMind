@@ -27,7 +27,7 @@ class QNetworkWithEmbedding(BaseNNEstimator):
     def get_embedding(self):
         self.embedding_layer.eval()
         return self.embedding_layer
-    
+
     def _preprocess(self, x):
         with torch.no_grad():
             if isinstance(x, int):
@@ -38,11 +38,10 @@ class QNetworkWithEmbedding(BaseNNEstimator):
             elif isinstance(x, torch.Tensor):
                 if x.ndim > 1 and x.shape[-1] == 1:
                     x = x.squeeze(-1)
-            
+
             x = x.int()
 
         return x
-
 
     def _preprocess(self, x):
         with torch.no_grad():

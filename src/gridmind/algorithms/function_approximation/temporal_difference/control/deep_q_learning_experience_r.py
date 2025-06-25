@@ -15,7 +15,6 @@ from torch import nn
 from tqdm import trange
 
 
-
 class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlgorithm):
     def __init__(
         self,
@@ -52,7 +51,7 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
         self.summary_writer = None
         self.target_network_update_frequency = target_network_update_frequency
         self.add_graph = add_graph
-        self.tau = tau  
+        self.tau = tau
         self.use_soft_update = use_soft_update
         self.max_grad_norm = max_grad_norm
         self.loss_fn = loss_fn
@@ -181,7 +180,9 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
 
             loss.backward()
             # Clip gradients to prevent exploding gradients
-            torch.nn.utils.clip_grad_norm_(self.q_online.parameters(), max_norm=self.max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.q_online.parameters(), max_norm=self.max_grad_norm
+            )
             self.optimizer.step()
 
             # Update target network
@@ -190,7 +191,8 @@ class DeepQLearningWithExperienceReplay(BaseFunctionApproximationBasedLearingAlg
                     self.q_target.parameters(), self.q_online.parameters()
                 ):
                     target_param.data.copy_(
-                        self.tau * online_param.data + (1 - self.tau) * target_param.data
+                        self.tau * online_param.data
+                        + (1 - self.tau) * target_param.data
                     )
 
             elif self.global_step % self.target_network_update_frequency == 0:
