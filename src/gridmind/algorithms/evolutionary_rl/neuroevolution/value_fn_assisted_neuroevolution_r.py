@@ -93,17 +93,28 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self.mutation_mean = mutation_mean
         self.mutation_std = mutation_std
         self.should_update_mutation_std = update_mutation_std
-        self.mutation_std_max = mutation_std_max
-        self.mutation_std_min = mutation_std_min
-        self.momentum: float = 0.0
-        self.stagnation_patience: int = stagnation_patience
-        self.elite_score_history_limit: int = 10
-        self.elite_scores_history: List[float] = []
-        self.elite_score: Optional[float] = None
-        self.ema_elite_score: Optional[float] = None
-        self.ema_elite_score_weight = ema_elite_weight
-        self.elite_score_previous: Optional[float] = None
-        self.generations_since_last_elite_score_change: int = 0
+
+        if self.should_update_mutation_std:
+            self.mutation_std_max = mutation_std_max
+            self.mutation_std_min = mutation_std_min
+            self.momentum: float = 0.0
+            self.stagnation_patience: int = stagnation_patience
+            self.elite_score_history_limit: int = 10
+            self.elite_scores_history: List[float] = []
+            self.elite_score: Optional[float] = None
+            self.ema_elite_score: Optional[float] = None
+            self.ema_elite_score_weight = ema_elite_weight
+            self.elite_score_previous: Optional[float] = None
+            self.generations_since_last_elite_score_change: int = 0
+
+        if not self.should_update_mutation_std:
+            self.logger.info(
+                f"`update_mutation_std` is set to False. The following parameters will not have any effect: "
+                f"\n - `mutation_std`\n - `mutation_std_min`\n - `mutation_std_max` \n - `momentum` "
+                f"\n - `stagnation_patience` \n - `elite_score_history_limit` \n - `ema_elite_score_weight`"
+                f"\n - `ema_elite_score` \n - `elite_score_previous` \n - `generations_since_last_elite_score_change`"
+            )
+
         self.curate_trajectory = curate_trajectory
         self.feature_constructor = feature_constructor
         self.fitness_evaluation_num_samples = fitness_evaluation_num_samples
@@ -310,6 +321,33 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             os.makedirs(log_dir)
 
         self.summary_writer = SummaryWriter(log_dir=log_dir)
+
+        # Log all algorithm parameters
+        self.summary_writer.add_text("Algorithm Parameters", 
+                                     f"""mu: {self.mu}, lambda: {self._lambda}, 
+                                    mutation_mean: {self.mutation_mean if self.should_update_mutation_std else "N/A"}, 
+                                    mutation_std: {self.mutation_std if self.should_update_mutation_std else "N/A"}, 
+                                    mutation_std_min: {self.mutation_std_min if self.should_update_mutation_std else "N/A"}, 
+                                    mutation_std_max: {self.mutation_std_max if self.should_update_mutation_std else "N/A"}, 
+                                    ema_elite_weight: {self.ema_elite_score_weight if self.should_update_mutation_std else "N/A"}, 
+                                    stagnation_patience: {self.stagnation_patience if self.should_update_mutation_std else "N/A"}, 
+                                    num_top_k: {self.num_top_k}, 
+                                    num_elites: {self.num_elites}, 
+                                    fitness_evaluation_num_samples: {self.fitness_evaluation_num_samples}, 
+                                    q_step_size: {self.q_learner.step_size}, 
+                                    q_discount_factor: {self.q_learner.discount_factor}, 
+                                    q_learner_num_steps: {self.q_learner_num_steps}, 
+                                    q_learner_target_network_update_frequency: {self.q_learner_target_network_update_frequency}, 
+                                    q_learner_batch_size: {self.q_learner_batch_size},
+                                    replay_buffer_capacity: {self.replay_buffer.capacity},
+                                    replay_buffer_minimum_size: {self.replay_buffer_minimum_size},
+                                    curate_trajectory: {self.curate_trajectory},
+                                    curate_elite_states: {self.curate_elite_states},
+                                    write_summary: {self.write_summary},
+                                    evaluate_q_derived_policy: {self.evaluate_q_derived_policy},
+                                    parent_selection_fn: {self.parent_selection_fn.__name__ if self.parent_selection_fn else "None"},
+                                    selection_fn_to_train_q_fn: {self.selection_fn_to_train_q_fn.__name__ if self.selection_fn_to_train_q_fn else "None"}                               
+                                    """)
 
     @property
     def population_fitness(self):
@@ -621,6 +659,18 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             )
 
         for num_gen in trange(num_generations):
+            if self.write_summary:
+                self.summary_writer.add_scalar(
+                    "Replay_Buffer_Size (beginning of generation)",
+                    self.replay_buffer.size(),
+                    global_step=self.generation,
+                )
+                self.summary_writer.add_scalar(
+                    "Population_Size (beginning of generation)",
+                    len(self.population),
+                    global_step=self.generation,
+                )
+
             sample_observations, _, _, _, _, _ = self.replay_buffer.sample(
                 self.fitness_evaluation_num_samples
             )
