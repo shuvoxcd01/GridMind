@@ -65,10 +65,26 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         )
 
         self.num_actions = self.env.action_space.n
+        self.best_agent = None
 
         self.population = (
             population if population is not None else self.initialize_population()
         )
+        self._generation = 0
+
+    @property
+    def generation(self):
+        return self._generation
+
+    def get_best(self, unwrapped: bool = True):
+        assert (
+            self.best_agent is not None
+        ), "No best agent found. Train the algorithm first."
+
+        if unwrapped:
+            return self.best_agent.network
+
+        return self.best_agent
 
     def initialize_population(self):
         population = []
@@ -116,10 +132,10 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         raise Exception()
 
     def _get_policy(self):
-        return self.policy
+        return self.get_best(unwrapped=True)
 
     def set_policy(self, policy, **kwargs):
-        self.policy = policy
+        raise NotImplementedError()
 
     def mutate(self, network, mean, std):
         chromosome = NeuroEvolutionUtil.get_parameters_vector(network)
@@ -148,10 +164,8 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
 
         return sum_episode_return / average_over_episodes
 
-    def _train(self, num_generations: int):
-        best_agent = None
-
-        for generation in trange(num_generations):
+    def _train(self, num_generations: int, *args, **kwargs):
+        for num_gen in trange(num_generations):
             agent_to_assess_fitness = []
 
             for agent in self.population:
@@ -166,37 +180,41 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             for agent, fitness in zip(agent_to_assess_fitness, fitness_scores):
                 agent.fitness = fitness
 
-                if best_agent is None or agent.fitness > best_agent.fitness:
-                    best_agent = agent
+                if self.best_agent is None or agent.fitness > self.best_agent.fitness:
+                    self.best_agent = agent
 
                     if (
                         self.highest_possible_fitness is not None
-                        and best_agent.fitness >= self.highest_possible_fitness
+                        and self.best_agent.fitness >= self.highest_possible_fitness
                     ):
                         self.logger.info(
-                            f"Stopping fitness reached: {best_agent.fitness}"
+                            f"Stopping fitness reached: {self.best_agent.fitness}"
                         )
                         self.summary_writer.add_scalar(
                             "Best_Agent_Fitness",
-                            best_agent.fitness,
-                            global_step=generation,
+                            self.best_agent.fitness,
+                            global_step=self.generation,
                         )
-                        return best_agent
+                        return self.best_agent
 
             average_fitness = sum([agent.fitness for agent in self.population]) / len(
                 self.population
             )
             self.logger.info(
-                f"Generation: {generation}, Average Fitness: {average_fitness}"
+                f"Generation: {self.generation}, Average Fitness: {average_fitness}"
             )
             self.summary_writer.add_scalar(
-                "Population_Average_Fitness", average_fitness, global_step=generation
+                "Population_Average_Fitness",
+                average_fitness,
+                global_step=self.generation,
             )
 
-            if best_agent is not None:
-                self.logger.info(f"Best Agent Fitness: {best_agent.fitness}")
+            if self.best_agent is not None:
+                self.logger.info(f"Best Agent Fitness: {self.best_agent.fitness}")
                 self.summary_writer.add_scalar(
-                    "Best_Agent_Fitness", best_agent.fitness, global_step=generation
+                    "Best_Agent_Fitness",
+                    self.best_agent.fitness,
+                    global_step=self.generation,
                 )
 
             # Select parents
@@ -220,7 +238,8 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
                     )
                     self.population.append(child)
 
-        return best_agent
+            self._generation += 1
+        return self.best_agent
 
 
 if __name__ == "__main__":
