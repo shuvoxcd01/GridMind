@@ -8,7 +8,7 @@ from gymnasium.wrappers import RecordVideo
 from datetime import datetime
 
 from data import SAVE_DATA_DIR
-from example_usage.control.lunar_lander.config_loader import ConfigLoader
+from gridmind.algorithms.evolutionary_rl.neuroevolution.config_loader import ConfigLoader
 
 logging.basicConfig(level=logging.INFO)
 
