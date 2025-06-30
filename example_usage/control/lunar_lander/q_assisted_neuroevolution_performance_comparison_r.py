@@ -137,7 +137,12 @@ for file in os.listdir(config_files_dir):
     reevaluate_agent_score = config.getboolean("SELECTION_AND_EVALUATION", "reevaluate_agent_score")
     evaluate_q_derived_policy = config.getboolean("SELECTION_AND_EVALUATION", "evaluate_q_derived_policy")
     write_summary = config.getboolean("LOGGING", "write_summary")
-    summary_dir = config.get("LOGGING", "summary_dir", fallback=None)
+    summary_dir = config.get("LOGGING", "summary_dir")
+    if summary_dir == "None":
+        summary_dir = None
+    else:
+        raise ValueError(f"Unsupported summary directory: {summary_dir}. Expected 'None'.")
+    
     render = config.getboolean("LOGGING", "render")
 
     
