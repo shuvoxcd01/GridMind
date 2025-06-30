@@ -19,6 +19,9 @@ config_files_dir = "example_usage/control/lunar_lander/configs"
 
 
 for file in os.listdir(config_files_dir):
+    if not file.endswith(".ini"):
+        continue
+    
     print(f"Processing configuration file: {file}")
     config_file_path = os.path.join(config_files_dir, file)
     config_loader = ConfigLoader()
