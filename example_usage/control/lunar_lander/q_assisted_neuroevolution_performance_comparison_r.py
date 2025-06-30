@@ -21,7 +21,7 @@ config_files_dir = "example_usage/control/lunar_lander/configs"
 for file in os.listdir(config_files_dir):
     if not file.endswith(".ini"):
         continue
-    
+
     print(f"Processing configuration file: {file}")
     config_file_path = os.path.join(config_files_dir, file)
     config_loader = ConfigLoader()
@@ -56,7 +56,7 @@ for file in os.listdir(config_files_dir):
 
     try:
         best_agent = algorithm.train(
-            num_generations= 10
+            num_generations= num_generations_to_run,
         )
     except KeyboardInterrupt as e:
         print(f"Training interrupted: {e}")
