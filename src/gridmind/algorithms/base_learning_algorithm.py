@@ -180,7 +180,7 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def _train(
+    def train(
         self,
         num_episodes: Optional[int] = None,
         num_steps: Optional[int] = None,
