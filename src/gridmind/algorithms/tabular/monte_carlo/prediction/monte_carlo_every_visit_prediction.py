@@ -18,9 +18,8 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     def __init__(
         self, env: Env, policy: BasePolicy, discount_factor: float = 0.9
     ) -> None:
-        super().__init__(name="MCEveryVisitPrediction")
+        super().__init__(name="MCEveryVisitPrediction", env=env)
 
-        self.env = env
         self.policy = policy
         self.V = defaultdict(float)
         self.discount_factor = discount_factor
