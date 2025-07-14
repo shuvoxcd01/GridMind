@@ -22,8 +22,6 @@ class BaseEvoRLAlgorithm(BaseLearningAlgorithm):
     def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
         raise NotImplementedError
 
-
-
     def train(self, num_generations: int, save_policy: bool = True):
         self._training_wrapper(
             num_iter=num_generations,
