@@ -1,8 +1,8 @@
-cff-version: 0.0.5
+cff-version: 0.0.6
 message: "If you use this software, please cite it as below."
 type: software
 title: "GridMind: A Reinforcement Learning Algorithms Library"
-version: 0.0.5
+version: 0.0.6
 date-released: 2024-08-23
 url: "https://github.com/shuvoxcd01/GridMind"
 repository-code: "https://github.com/shuvoxcd01/GridMind"
