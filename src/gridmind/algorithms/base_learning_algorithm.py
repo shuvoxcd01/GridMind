@@ -37,13 +37,19 @@ class BaseLearningAlgorithm(ABC):
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
+       
         self.env = env
+
+        if self.env is not None :
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+        else:
+            env_name = "unknown"
+
         self.epoch_eval_interval = None
 
         self.perform_evaluation = False
         self.monitor_divergence = False
         self.stop_on_divergence = False
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
         self.write_summary = write_summary
         if self.write_summary:
