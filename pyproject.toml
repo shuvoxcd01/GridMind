@@ -16,6 +16,6 @@ keywords = ["Reinforcement Learning", "Temporal Difference", "TD Control","TD Pr
 Repository = "https://github.com/shuvoxcd01/GridMind.git"
 
 [project.optional-dependencies]
-examples=["gymnasium[toy-text]==1.0.0", "rl-worlds==0.0.2"]
+examples=["gymnasium[toy-text]==1.0.0", "rl-worlds==0.0.3.post1"]
 fun_app=["torch==2.4.1", "torchinfo==1.8.0"]
-all=["torch==2.4.1", "torchinfo==1.8.0", "gymnasium[toy-text]==1.0.0",  "gymnasium[box2d]==1.0.0", "rl-worlds==0.0.2"]
+all=["torch==2.4.1", "torchinfo==1.8.0", "gymnasium[toy-text]==1.0.0",  "gymnasium[box2d]==1.0.0", "rl-worlds==0.0.3.post1"]
