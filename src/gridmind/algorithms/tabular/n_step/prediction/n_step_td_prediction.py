@@ -18,10 +18,9 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         step_size: float = 0.01,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__("N-Step-TD-Prediction")
+        super().__init__("N-Step-TD-Prediction", env=env)
         self.step_size = step_size
         self.V = defaultdict(int)
-        self.env = env
         self.policy = policy
         self.discount_factor = discount_factor
         self.n = n

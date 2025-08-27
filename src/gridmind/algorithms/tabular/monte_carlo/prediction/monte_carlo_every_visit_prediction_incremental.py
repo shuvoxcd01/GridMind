@@ -21,9 +21,8 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         step_size: float = 0.01,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__(name="MCEveryVisitPredictionIncremental")
+        super().__init__(name="MCEveryVisitPredictionIncremental", env=env)
 
-        self.env = env
         self.policy = policy
         self.V = defaultdict(float)
         self.step_size = step_size

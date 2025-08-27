@@ -49,6 +49,10 @@ This library is also designed to serve as a companion for readers of the book *R
 
 ---
 
+## Documentation
+[https://gridmind.readthedocs.io/en/latest/](https://gridmind.readthedocs.io/en/latest/)
+
+
 ## Getting Started 🚀
 
 To use GridMind, you’ll need:

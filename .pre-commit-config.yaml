@@ -1,0 +1,21 @@
+repos:
+  - repo: local
+    hooks:
+      - id: update-citation-version
+        name: Update CITATION.cff version
+        entry: python3 scripts/update_citation_version.py
+        language: system
+        files: ^(pyproject\.toml|CITATION\.cff)$
+        pass_filenames: false
+        always_run: false
+  
+  # Optional: Add other useful pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-statements
