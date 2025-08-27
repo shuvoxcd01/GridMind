@@ -207,3 +207,4 @@ example_usage/*
 *.pth
 
 .gitignore
+CITATION.cff
