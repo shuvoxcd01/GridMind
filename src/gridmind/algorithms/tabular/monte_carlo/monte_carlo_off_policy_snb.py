@@ -1,13 +1,14 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episode
-from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+
 from gridmind.policies.base_policy import BasePolicy
 from gridmind.policies.greedy.stochastic_start_greedy_policy import (
     StochasticStartGreedyPolicy,
 )
 from gridmind.policies.random_policy import RandomPolicy
+from gridmind.utils.algorithm_util.episode_collector import collect_episode
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm

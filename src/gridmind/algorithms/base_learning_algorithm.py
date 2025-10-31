@@ -37,13 +37,19 @@ class BaseLearningAlgorithm(ABC):
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
+       
         self.env = env
+
+        if self.env is not None :
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+        else:
+            env_name = "unknown"
+
         self.epoch_eval_interval = None
 
         self.perform_evaluation = False
         self.monitor_divergence = False
         self.stop_on_divergence = False
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
         self.write_summary = write_summary
         if self.write_summary:
@@ -180,7 +186,7 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def _train(
+    def train(
         self,
         num_episodes: Optional[int] = None,
         num_steps: Optional[int] = None,
@@ -285,6 +291,9 @@ class BaseLearningAlgorithm(ABC):
                     self.logger.warning("Stopping training due to divergence.")
                     self.set_policy(policy_prev)
                     break
+        
+        if save_policy:
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
         if save_policy:
             env_name = self.env.spec.id if self.env.spec is not None else "unknown"

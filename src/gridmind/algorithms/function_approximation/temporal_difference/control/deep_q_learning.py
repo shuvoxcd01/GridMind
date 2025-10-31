@@ -13,7 +13,10 @@ from gymnasium import Env
 import torch
 from tqdm import trange
 from datetime import datetime
-from data import SAVE_DATA_DIR
+try:
+    from data import SAVE_DATA_DIR
+except ImportError:
+    SAVE_DATA_DIR = None
 
 
 class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):

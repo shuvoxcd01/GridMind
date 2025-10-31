@@ -8,6 +8,6 @@ def test_sarsa_no_exceptions():
     algorithm = NeuroEvolution(env=env)
 
     try:
-        algorithm._train(num_generations=10)
+        algorithm.train(num_generations=10)
     except Exception as e:
         pytest.fail(f"Training raised an exception: {e}")

@@ -203,3 +203,4 @@ example_usage/*
 *.mp4
 *.pth
 .gitignore
+CITATION.cff

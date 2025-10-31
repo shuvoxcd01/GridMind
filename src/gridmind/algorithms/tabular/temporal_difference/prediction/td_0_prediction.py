@@ -17,10 +17,9 @@ class TD0Prediction(BaseLearningAlgorithm):
         step_size: float = 0.1,
         discount_factor: float = 0.9,
     ) -> None:
-        super().__init__(name="TD-0-Prediction")
+        super().__init__(name="TD-0-Prediction", env=env)
         self.step_size = step_size
         self.V = defaultdict(int)
-        self.env = env
         self.policy = policy
         self.discount_factor = discount_factor
 
