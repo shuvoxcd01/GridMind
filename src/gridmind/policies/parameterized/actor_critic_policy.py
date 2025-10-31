@@ -1,5 +1,6 @@
 from gridmind.policies.base_policy import BasePolicy
 
+from gridmind.policies.parameterized.base_parameterized_policy import BaseParameterizedPolicy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -12,29 +13,34 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     return layer
 
 
-class ActorCriticPolicy(nn.Module, BasePolicy):
-    def __init__(self, env):
-        nn.Module.__init__(self)
-        BasePolicy.__init__(self)
+class ActorCriticPolicy(BaseParameterizedPolicy):
+    def __init__(self, observation_shape, num_actions):
+        super(ActorCriticPolicy, self).__init__(
+            observation_shape=observation_shape, num_actions=num_actions
+        )
 
-        observation_shape = np.array(env.observation_space.shape).prod()
-        num_actions = env.action_space.n
+        self.actor, self.critic = self.construct_actor_critic_networks()
 
-        self.critic = nn.Sequential(
-            nn.Linear(observation_shape, 64),
+    def construct_actor_critic_networks(self):
+        input_size = int(np.prod(self.observation_shape))
+
+        critic = nn.Sequential(
+            nn.Linear(input_size, 64),
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
         )
 
-        self.actor = nn.Sequential(
-            nn.Linear(observation_shape, 64),
+        actor = nn.Sequential(
+            nn.Linear(input_size, 64),
             nn.ReLU(),
             nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(64, num_actions),
+            nn.Linear(64, self.num_actions),
         )
+
+        return actor, critic
 
     def get_value(self, x):
         return self.critic(x)
@@ -46,7 +52,7 @@ class ActorCriticPolicy(nn.Module, BasePolicy):
         if action is None:
             action = dist.sample()
 
-        return action, dist.log_prob(action), dist.entropy(), self.critic(x)
+        return action, dist.log_prob(action.squeeze()), dist.entropy(), self.critic(x)
 
     def get_action(self, state):
         logits = self.actor(state)

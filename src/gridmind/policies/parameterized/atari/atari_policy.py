@@ -6,10 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
 
 class AtariPolicy(BaseParameterizedPolicy):
     def __init__(self, observation_shape, num_actions, channel_first: bool = True):
@@ -44,6 +40,8 @@ class AtariPolicy(BaseParameterizedPolicy):
         return x.reshape(1, -1).size(1)
 
     def forward(self, x):
+        x = self.add_batch_dim_if_necessary(x)
+
         if not self.channel_first:
             x = x.permute(0, 3, 1, 2)  # from [1, 210, 160, 3] to [1, 3, 210, 160]
 
@@ -67,7 +65,6 @@ class AtariPolicy(BaseParameterizedPolicy):
         return state
 
     def get_actions(self, states):
-        states = self.add_batch_dim_if_necessary(states)
         logits = self.forward(states)
         dist = Categorical(logits=logits)
         actions = dist.sample().unsqueeze(-1)
@@ -75,7 +72,6 @@ class AtariPolicy(BaseParameterizedPolicy):
         return actions
 
     def get_action(self, state):
-        state = self.add_batch_dim_if_necessary(state)
         logits = self.forward(state)
         dist = Categorical(logits=logits)
         action = dist.sample().detach().cpu().item()
@@ -83,7 +79,6 @@ class AtariPolicy(BaseParameterizedPolicy):
         return action
 
     def get_action_prob(self, state, action):
-        state = self.add_batch_dim_if_necessary(state)
         logits = self.forward(state)
         dist = Categorical(logits=logits)
 
