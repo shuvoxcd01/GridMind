@@ -1,6 +1,7 @@
 from copy import deepcopy
 import logging
 from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
+from gridmind.algorithms.tabular.temporal_difference.control.q_learning_experience_replay import QLearningExperienceReplay
 from gridmind.policies.parameterized.base_parameterized_policy import (
     BaseParameterizedPolicy,
 )
@@ -231,7 +232,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         if population is None:
             self.population = self.initialize_population()
         elif isinstance(population[0], DiscreteActionMLPPolicy):
-            self.population = [NeuroAgent(network=policy) for policy in population]
+            self.population = [NeuroAgent(policy=policy) for policy in population]
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
@@ -363,7 +364,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
     def extract_policies_from_population(self):
         policies = []
         for agent in self.population:
-            policies.append(agent.network)
+            policies.append(agent.policy)
 
         return policies
 
@@ -373,7 +374,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             population.append(self.spawn_individual())
 
         if population and add_graph:
-            typical_network = population[0].network
+            typical_network = population[0].policy
             self.logger.info("\n%s", typical_network)
 
             if self.summary_writer is not None:
@@ -397,7 +398,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         self.population = [
             NeuroAgent(
-                network=network,
+                policy=network,
                 starting_generation=generation,
                 parent_id=parent_id,
                 name_prefix=name_prefix,
@@ -427,7 +428,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             name_prefix = self.agent_name_prefix
 
         individual = NeuroAgent(
-            network=policy,
+            policy=policy,
             starting_generation=generation,
             parent_id=parent_id,
             name_prefix=name_prefix,
@@ -456,7 +457,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             )
 
         spawned_individual = NeuroAgent(
-            network=network,
+            policy=network,
             starting_generation=generation,
             name_prefix=name_prefix,
             parent_id=parent_id,
@@ -490,7 +491,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         ), "Best policy not found. Please train the algorithm first."
 
         if unwrapped:
-            return self.best_agent.network
+            return self.best_agent.policy
 
         return self.best_agent
 
@@ -628,11 +629,11 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             )
 
             for agent in selected_agents:
-                score = self.evaluate_score(agent.network)
+                score = self.evaluate_score(agent.policy)
                 if assign_score:
                     agent.score = score
 
-        self.q_learner._train(
+        self.q_learner.train(
             num_steps=num_steps, prediction_only=False, replay_buffer=self.replay_buffer
         )
 
@@ -648,7 +649,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             agents = Selection.random_selection(
                 population=self.population, num_selection=1
             )
-            [self.collect_episode(policy=agent.network) for agent in agents]
+            [self.collect_episode(policy=agent.policy) for agent in agents]
 
         if self.train_q_learner:
             self.logger.info(
@@ -680,7 +681,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
                     agent.fitness,
                     agent.info["mean_expected_q"],
                     agent.info["sum_expected_q"],
-                ) = self.evaluate_fitness_with_q_fn(agent.network, sample_observations)
+                ) = self.evaluate_fitness_with_q_fn(agent.policy, sample_observations)
 
             self._calculate_and_log_population_statistics()
 
@@ -703,7 +704,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             for agent in self.top_k:
                 if agent.score is None or self.reevaluate_agent_score:
                     self.logger.info(f"Evaluating agent {agent.name}")
-                    agent.score = self.evaluate_score(policy=agent.network)
+                    agent.score = self.evaluate_score(policy=agent.policy)
                     self.logger.info(
                         f"Evaluated agent {agent.name} score: {agent.score}"
                     )
@@ -831,13 +832,13 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             for parent in parents:
                 for _ in range(self._lambda // self.mu):
                     mutated_param_vector = self.mutate(
-                        network=parent.network,
+                        network=parent.policy,
                         mean=self.mutation_mean,
                         std=self.mutation_std,
                     )
                     child = self.spawn_individual()
                     NeuroEvolutionUtil.set_parameters_vector(
-                        child.network, mutated_param_vector
+                        child.policy, mutated_param_vector
                     )
                     self.population.append(child)
 
@@ -888,7 +889,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
             population=self.population, num_selection=self.num_top_k
         )
         random_k_scores = [
-            self.evaluate_score(policy=agent.network, add_to_replay_buffer=False)
+            self.evaluate_score(policy=agent.policy, add_to_replay_buffer=False)
             for agent in random_k
         ]
         random_k_avg_score = sum(random_k_scores) / len(random_k_scores)
@@ -973,7 +974,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         if self.best_agent is None:
             raise ValueError("Best agent not found. Please train the algorithm first.")
         network_name = "best_agent_network.pth"
-        agent_network = self.best_agent.network
+        agent_network = self.best_agent.policy
 
         self.save_agent_network(save_dir, state_dict_only, network_name, agent_network)
 
@@ -994,14 +995,14 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
         self, agent: NeuroAgent, path: str, state_dict_only: bool = False
     ):
         if state_dict_only:
-            if agent.network is None:
+            if agent.policy is None:
                 raise ValueError("Agent network is None. Cannot load state dict.")
 
             # Load only the state dict
-            agent.network.load_state_dict(torch.load(path))
+            agent.policy.load_state_dict(torch.load(path))
         else:
             # Load the entire model
-            agent.network = torch.load(path)
+            agent.policy = torch.load(path)
 
     def save_population_networks(self, save_dir: str, state_dict_only: bool = False):
         if self.population is None:
@@ -1012,7 +1013,7 @@ class QAssistedNeuroEvolution(BaseEvoRLAlgorithm):
 
         for i, agent in enumerate(self.population):
             network_name = f"agent_{i}_network.pth"
-            agent_network = agent.network
+            agent_network = agent.policy
             self.save_agent_network(
                 save_dir,
                 state_dict_only=state_dict_only,
@@ -1060,13 +1061,17 @@ if __name__ == "__main__":
         num_hidden_layers=4,
     )
 
+    q_learner = QLearningExperienceReplay(env=env, step_size=0.01, discount_factor=0.99)
+
     algorithm = QAssistedNeuroEvolution(
         env=env,
         policy_network_creator_fn=policy_creator,
-        write_summary=True,
+        write_summary=False,
         stopping_score=500,
         q_learner_target_network_update_frequency=250,
         q_learner_num_steps=500,
+        q_learner=q_learner,
+        replay_buffer_minimum_size=1000,
     )
 
     algorithm.register_performance_evaluator(

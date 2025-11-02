@@ -98,7 +98,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             num_actions=self.num_actions,
             num_hidden_layers=2,
         )
-        spawned_individual = NeuroAgent(network=network)
+        spawned_individual = NeuroAgent(policy=network)
 
         return spawned_individual
 
@@ -234,7 +234,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
                     )
                     child = self.spawn_individual()
                     NeuroEvolutionUtil.set_parameters_vector(
-                        child.network, mutated_param_vector
+                        child.policy, mutated_param_vector
                     )
                     self.population.append(child)
 

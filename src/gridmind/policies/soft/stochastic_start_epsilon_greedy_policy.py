@@ -2,9 +2,9 @@ from collections import defaultdict
 import random
 from typing import Optional
 from gymnasium.spaces.space import Space
-
+import numpy as np
 from gridmind.policies.soft.base_soft_policy import BaseSoftPolicy
-
+import torch
 
 class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
     """
@@ -48,6 +48,13 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
             action = self._get_greedy_action(state)
 
         return action
+    
+    def get_actions(self, states):
+        actions = []
+        for state in states:
+            action = self.get_action(state)
+            actions.append(action)
+        return actions
 
     def _get_greedy_action(self, state):
         action = self.policy_dict[state]
@@ -68,6 +75,30 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
         )
 
         return action_probs
+    
+    def get_action_probs(self, states):
+        action_probs_list = []
+        for state in states:
+            action_probs = []
+            greedy_action = self._get_greedy_action(state)
+
+            each_random_action_prob = self.epsilon / self.num_actions
+            greedy_action_prob = 1.0 - self.epsilon + each_random_action_prob
+
+            for action in range(self.num_actions):
+                prob = (
+                    greedy_action_prob
+                    if action == greedy_action
+                    else each_random_action_prob
+                )
+                action_probs.append(prob)
+
+            action_probs_list.append(action_probs)
+
+            action_probs_arr = np.array(action_probs)
+
+        return action_probs_arr
+
 
     def update(self, state, action):
         assert (

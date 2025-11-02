@@ -9,7 +9,7 @@ from gridmind.policies.parameterized.discrete_action_mlp_policy import (
 class NeuroAgent(object):
     def __init__(
         self,
-        network: Optional[DiscreteActionMLPPolicy] = None,
+        policy: Optional[DiscreteActionMLPPolicy] = None,
         fitness: Optional[float] = None,
         score: Optional[float] = None,
         starting_generation: Optional[int] = None,
@@ -17,7 +17,7 @@ class NeuroAgent(object):
         parent_id: Optional[Union[str, uuid.UUID]] = None,
         name_prefix: Optional[str] = None,
     ):
-        self.network = network
+        self.policy = policy
         self.fitness = fitness
         self.starting_generation = starting_generation
         self._id = id if id is not None else uuid.uuid4()

@@ -74,7 +74,7 @@ class NeuroEvolution:
         if population is None:
             self.population = self.initialize_population()
         elif isinstance(population[0], DiscreteActionMLPPolicy):
-            self.population = [NeuroAgent(network=policy) for policy in population]
+            self.population = [NeuroAgent(policy=policy) for policy in population]
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
@@ -92,7 +92,7 @@ class NeuroEvolution:
     def extract_policies_from_population(self):
         policies = []
         for agent in self.population:
-            policies.append(agent.network)
+            policies.append(agent.policy)
 
         return policies
 
@@ -119,7 +119,7 @@ class NeuroEvolution:
 
         self.population = [
             NeuroAgent(
-                network=network,
+                policy=network,
                 starting_generation=generation,
                 parent_id=parent_id,
                 name_prefix=name_prefix,
@@ -146,7 +146,7 @@ class NeuroEvolution:
             name_prefix = self.agent_name_prefix
 
         individual = NeuroAgent(
-            network=policy,
+            policy=policy,
             starting_generation=generation,
             parent_id=parent_id,
             name_prefix=name_prefix,
@@ -170,7 +170,7 @@ class NeuroEvolution:
             num_hidden_layers=2,
         )
         spawned_individual = NeuroAgent(
-            network=network,
+            policy=network,
             starting_generation=generation,
             name_prefix=name_prefix,
             parent_id=parent_id,
@@ -341,7 +341,7 @@ class NeuroEvolution:
             for parent in parents:
                 for _ in range(self._lambda // self.mu):
                     mutated_param_vector = self.mutate(
-                        network=parent.network,
+                        network=parent.policy,
                         mean=self.mutation_mean,
                         std=self.mutation_std,
                     )
@@ -349,7 +349,7 @@ class NeuroEvolution:
                         parent_id=parent.id, generation=self._generation + 1
                     )
                     NeuroEvolutionUtil.set_parameters_vector(
-                        child.network, mutated_param_vector
+                        child.policy, mutated_param_vector
                     )
                     self.population.append(child)
 
