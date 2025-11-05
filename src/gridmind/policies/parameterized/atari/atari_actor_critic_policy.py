@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 
+
 class AtaricActorCriticPolicy(ActorCriticPolicy):
 
     def __init__(self, observation_shape, num_actions, channel_first: bool = True):
@@ -18,7 +19,7 @@ class AtaricActorCriticPolicy(ActorCriticPolicy):
             observation_shape=observation_shape, num_actions=num_actions
         )
 
-    def construct_actor_critic_networks(self): # type: ignore
+    def construct_actor_critic_networks(self):  # type: ignore
         actor = AtariPolicy(
             observation_shape=self.observation_shape,
             num_actions=self.num_actions,
@@ -31,12 +32,8 @@ class AtaricActorCriticPolicy(ActorCriticPolicy):
         )
 
         return actor, critic
-    
+
     def get_value(self, x):
         value_logits = self.critic(x)
         value = value_logits.view(-1)
         return value
-    
-    
-
-    

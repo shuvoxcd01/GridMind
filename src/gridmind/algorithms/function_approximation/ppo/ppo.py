@@ -44,7 +44,13 @@ class PPO(BaseLearningAlgorithm):
             else self._determine_observation_shape()
         )
         num_actions = env.action_space.n
-        self.policy = policy if policy is not None else ActorCriticPolicy(observation_shape=observation_shape, num_actions=num_actions)
+        self.policy = (
+            policy
+            if policy is not None
+            else ActorCriticPolicy(
+                observation_shape=observation_shape, num_actions=num_actions
+            )
+        )
         self.T = 500
         self.num_epochs = 10
         self.minibatch_size = 64
