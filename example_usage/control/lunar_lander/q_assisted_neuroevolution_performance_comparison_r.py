@@ -1,5 +1,5 @@
 import os
-from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroevolution_r import QAssistedNeuroEvolution
+from gridmind.algorithms.evolutionary_rl.neuroevolution.VANE_deep_q_r import DeepQAssistedNeuroEvolution
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 import gymnasium as gym
 import logging
@@ -37,7 +37,7 @@ for file in os.listdir(config_files_dir):
     
     
     
-    algorithm = QAssistedNeuroEvolution(env=env, **config)
+    algorithm = DeepQAssistedNeuroEvolution(env=env, **config)
 
 
 
@@ -62,4 +62,4 @@ for file in os.listdir(config_files_dir):
         print(f"Training interrupted: {e}")
         best_agent = algorithm.get_best(unwrapped=False)
 
-    algorithm.save_best_agent_network(".")
+    algorithm.save_best_agent(".")

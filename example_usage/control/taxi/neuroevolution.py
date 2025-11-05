@@ -1,5 +1,5 @@
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution import NeuroEvolution
-from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroevolution_r import QAssistedNeuroEvolution
+from gridmind.algorithms.evolutionary_rl.neuroevolution.VANE_deep_q_r import DeepQAssistedNeuroEvolution
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
 from gridmind.feature_construction.tile_coding import TileCoding
 import gymnasium as gym

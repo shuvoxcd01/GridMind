@@ -1,5 +1,5 @@
 import os
-from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroevolution_r import QAssistedNeuroEvolution
+from gridmind.algorithms.evolutionary_rl.neuroevolution.VANE_deep_q_r import DeepQAssistedNeuroEvolution
 from gridmind.policies.parameterized.discrete_action_mlp_policy import DiscreteActionMLPPolicy
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
 import gymnasium as gym
@@ -27,7 +27,7 @@ for q_lr in q_lrs:
             num_hidden_layers=2,
         )
 
-        algorithm = QAssistedNeuroEvolution(
+        algorithm = DeepQAssistedNeuroEvolution(
             env=env,
             policy_network_creator_fn=policy_creator,
             write_summary=True,
@@ -40,7 +40,7 @@ for q_lr in q_lrs:
             replay_buffer_capacity=5000,
             evaluate_q_derived_policy=True,
             train_q_learner=True,
-            update_mutation_std=False,
+            adaptive_mutation=False,
         )
 
         algorithm.register_performance_evaluator(
@@ -64,7 +64,7 @@ for q_lr in q_lrs:
         os.makedirs(q_network_save_dir, exist_ok=True)
         os.makedirs(best_agent_network_save_dir, exist_ok=True)
 
-        algorithm.save_q_network(save_dir=q_network_save_dir)
-        algorithm.save_best_agent_network(save_dir=best_agent_network_save_dir)
+        algorithm.save_q(save_dir=q_network_save_dir)
+        algorithm.save_best_agent(save_dir=best_agent_network_save_dir)
 
         print(f"Q-network and best agent network saved to {q_network_save_dir} and {best_agent_network_save_dir}")

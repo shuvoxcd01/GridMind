@@ -1,5 +1,5 @@
 import os
-from gridmind.algorithms.evolutionary_rl.neuroevolution.value_fn_assisted_neuroevolution_r import QAssistedNeuroEvolution
+from gridmind.algorithms.evolutionary_rl.neuroevolution.VANE_deep_q_r import DeepQAssistedNeuroEvolution
 from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning_experience_r import DeepQLearningWithExperienceReplay
 from gridmind.feature_construction.embedding_feature_extractor import EmbeddingFeatureExtractor
 from gridmind.feature_construction.one_hot import OneHotEncoder
@@ -61,7 +61,7 @@ if policy_network_creator_fn is None:
 
 num_generations_to_run = config.pop("num_generations_to_run", 100)
 
-algorithm = QAssistedNeuroEvolution(env=env,
+algorithm = DeepQAssistedNeuroEvolution(env=env,
                                     policy_network_creator_fn=policy_network_creator_fn,
                                     feature_constructor=feature_constructor,
                                     q_learner=q_learner,
@@ -97,7 +97,7 @@ except KeyboardInterrupt as e:
     print(f"Training interrupted: {e}")
     best_agent = algorithm.get_best(unwrapped=False)
 
-algorithm.save_best_agent_network(".")
+algorithm.save_best_agent(".")
 
 eval_env = gym.make("Taxi-v3", render_mode="human")
 
