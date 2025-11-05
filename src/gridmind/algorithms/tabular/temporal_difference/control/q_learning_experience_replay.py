@@ -48,7 +48,7 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
             policy
             if policy is not None
             else QTableDerivedEpsilonGreedyPolicy(
-                q_table=self.q_values, num_actions=self.num_actions
+                q_table=self.q_values, num_actions=self.num_actions, epsilon=0, epsilon_min=0, allow_decay=False
             )
         )
         self.step_size = step_size
@@ -68,7 +68,9 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
-    def _train_steps(self, num_steps: int, prediction_only: bool, replay_buffer: SimpleReplayBuffer):
+    def _train_steps(
+        self, num_steps: int, prediction_only: bool, replay_buffer: SimpleReplayBuffer
+    ):
         if prediction_only:
             raise ValueError(
                 "Deep Q-Learning with Experience Replay is a control algorithm and does not support prediction-only mode."
@@ -81,13 +83,18 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
 
         for i in trange(num_steps):
             # Sample a batch of experiences from the replay buffer
-            observations, actions, rewards, next_observations, all_terminated, all_truncated = (
-                replay_buffer.sample(self.batch_size)
-            )
+            (
+                observations,
+                actions,
+                rewards,
+                next_observations,
+                all_terminated,
+                all_truncated,
+            ) = replay_buffer.sample(self.batch_size)
 
             rewards = rewards.astype(float)
             all_terminated = all_terminated.astype(float)
-            
+
             # Reduce dimensions of observations and next_observations
             observations = np.squeeze(observations)
             next_observations = np.squeeze(next_observations)
@@ -100,18 +107,24 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
             # all_terminated = all_terminated.tolist()
             # all_truncated = all_truncated.tolist()
 
-
             # TODO: Vectorize this update
             for obs, action, reward, next_obs, terminated, truncated in zip(
-                observations, actions, rewards, next_observations, all_terminated, all_truncated
+                observations,
+                actions,
+                rewards,
+                next_observations,
+                all_terminated,
+                all_truncated,
             ):
                 self.q_values[obs][action] = self.q_values[obs][
-                        action
-                    ] + self.step_size * (
-                        reward
-                        + (1-terminated) * self.discount_factor * np.max(self.q_values[next_obs])
-                        - self.q_values[obs][action]
-                    )
+                    action
+                ] + self.step_size * (
+                    reward
+                    + (1 - terminated)
+                    * self.discount_factor
+                    * np.max(self.q_values[next_obs])
+                    - self.q_values[obs][action]
+                )
                 self.policy.update_q(
                     state=obs, action=action, value=self.q_values[obs][action]
                 )
@@ -119,28 +132,37 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
 
             self.global_step += 1
 
-    def _train_episodes(self, num_episodes: int, prediction_only: bool, replay_buffer: SimpleReplayBuffer):
+    def _train_episodes(
+        self,
+        num_episodes: int,
+        prediction_only: bool,
+        replay_buffer: SimpleReplayBuffer,
+    ):
         raise NotImplementedError()
 
     def set_policy(self, policy: BaseQDerivedSoftPolicy):
         self.policy = policy
-
 
     def predict(self, observations, is_preprocessed: bool = False):
         """Predict the Q-values for the given observations."""
         observations = np.squeeze(observations)
         q_values = []
 
-        for observation in observations:      
+        for observation in observations:
             q_val = self.q_values[observation]
             q_values.append(q_val)
 
         # Convert to tensor
         q_values = torch.tensor(q_values, dtype=torch.float32)
 
-        
         return q_values
 
+    def set_summary_writer(self, summary_writer):
+        """Set the summary writer for logging."""
+        pass
 
-    
+    def get_q_values(self) -> defaultdict:
+        return self.q_values
 
+    def set_q_values(self, q_values: dict):
+        self.q_values.update(q_values)

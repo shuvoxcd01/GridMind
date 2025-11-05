@@ -1,6 +1,7 @@
 from typing import Optional, Union
 import uuid
 
+from gridmind.policies.base_policy import BasePolicy
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
@@ -9,7 +10,7 @@ from gridmind.policies.parameterized.discrete_action_mlp_policy import (
 class NeuroAgent(object):
     def __init__(
         self,
-        policy: Optional[DiscreteActionMLPPolicy] = None,
+        policy: Optional[BasePolicy] = None,
         fitness: Optional[float] = None,
         score: Optional[float] = None,
         starting_generation: Optional[int] = None,

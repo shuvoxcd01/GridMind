@@ -4,6 +4,9 @@ from gridmind.policies.base_policy import BasePolicy
 
 
 class BaseEvoRLAlgorithm(BaseLearningAlgorithm):
+    def __init__(self, name: str, env, write_summary: bool = False):
+        super().__init__(name, env=env, write_summary=write_summary)
+
     def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError
 
