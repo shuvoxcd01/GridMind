@@ -240,6 +240,7 @@ class DeepQAssistedNeuroEvolution(BaseQAssistedNeuroEvolution):
 
         return observation
 
+    @torch.no_grad()
     def mutate(self, policy, *args, **kwargs):
         mean = kwargs.get("mean", self.mutation_mean)
         std = kwargs.get("std", self.mutation_std)
@@ -251,6 +252,7 @@ class DeepQAssistedNeuroEvolution(BaseQAssistedNeuroEvolution):
 
         return mutated_chromosome
 
+    @torch.no_grad()
     def generate_offspring_with_mutation(self, parent):
         mutated_param_vector = self.mutate(
             policy=parent.policy,

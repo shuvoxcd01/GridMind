@@ -432,7 +432,7 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
 
         # Get actions from the policy
         actions = policy.get_actions(preprocessed_observations)
-        action_probs = policy.get_action_probs(preprocessed_observations)
+        action_probs = policy.get_all_action_probabilities(preprocessed_observations)
 
         # Compute Q-values
         # q_values = (
