@@ -13,10 +13,16 @@ class BasePolicy(ABC):
     @abstractmethod
     def get_action_prob(self, state, action):
         raise NotImplementedError("This method must be overridden")
+    
+    @abstractmethod
+    def get_all_action_probabilities(self, states):
+        raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
     def update(self, state, action):
         raise NotImplementedError("This method must be overridden")
+    
+
 
     def __call__(self, state, *args, **kwds):
         return self.get_action(state=state)

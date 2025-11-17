@@ -69,6 +69,29 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
 
         return action_probs
 
+    def get_all_action_probabilities(self, states):
+        action_probs_list = []
+        for state in states:
+            action_probs = []
+            greedy_action = self._get_greedy_action(state)
+
+            each_random_action_prob = self.epsilon / self.num_actions
+            greedy_action_prob = 1.0 - self.epsilon + each_random_action_prob
+
+            for action in range(self.num_actions):
+                prob = (
+                    greedy_action_prob
+                    if action == greedy_action
+                    else each_random_action_prob
+                )
+                action_probs.append(prob)
+
+            action_probs_list.append(action_probs)
+
+        action_probs_arr = np.array(action_probs_list)
+
+        return action_probs_arr
+
     def update(self, state, action):
         assert (
             action in self.action_space if self.action_space is not None else True

@@ -16,7 +16,7 @@ class BasePolicyWrapper(ABC):
     def get_action(self, state):
         return self.policy.get_action(state)
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         return self.policy.get_action_prob(state, action)
 
     def update(self, state, action):

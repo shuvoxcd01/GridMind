@@ -88,5 +88,12 @@ class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
 
         return action_probs[action]
 
+    def get_all_action_probabilities(self, states):
+        action_probs = self.forward(states)
+
+        action_probs = F.softmax(action_probs, dim=-1)
+
+        return action_probs
+
     def update(self, state, action, value):
         pass
