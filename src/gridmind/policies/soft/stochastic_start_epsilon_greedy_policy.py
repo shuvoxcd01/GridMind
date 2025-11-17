@@ -91,7 +91,7 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
 
         return action_probs
 
-    def get_action_probs(self, states):
+    def get_all_action_probabilities(self, states):
         action_probs_list = []
         for state in states:
             action_probs = []

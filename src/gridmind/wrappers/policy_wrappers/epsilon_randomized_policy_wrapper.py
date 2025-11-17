@@ -21,7 +21,7 @@ class EpsilonRandomizedPolicyWrapper(BasePolicyWrapper):
         else:
             return self.policy.get_action(state)
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         policy_action_prob = self.policy.get_action_prob(state, action)
 
         action_prob = (

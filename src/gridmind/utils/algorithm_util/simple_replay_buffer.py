@@ -20,12 +20,18 @@ class SimpleReplayBuffer:
     def sample(
         self,
         batch_size: int = 1,
+        sequential: bool = False,
     ):
         """Sample a batch of experiences."""
         if batch_size > self.size():
             raise ValueError("Batch size is greater than buffer size.")
 
-        batch = random.sample(self.buffer, batch_size)
+        if sequential:
+            start_idx = random.randint(0, self.size() - batch_size)
+            batch = [self.buffer[i] for i in range(start_idx, start_idx + batch_size)]
+        else:
+            batch = random.sample(self.buffer, batch_size)
+
         states, actions, rewards, next_states, terminated, truncated = zip(*batch)
 
         states_arr = np.array(states)
@@ -75,5 +81,7 @@ if __name__ == "__main__":
     batch = buffer.sample(2)
     print(batch)
     print(buffer.size())
+    batch_2 = buffer.sample(2, sequential=True) 
+    print(batch_2)
     buffer.clear()
     print(buffer.size())
