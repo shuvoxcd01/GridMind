@@ -110,7 +110,7 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
 
             action_probs_list.append(action_probs)
 
-        action_probs_arr = np.array(action_probs_list)
+        action_probs_arr = np.array(action_probs_list).squeeze()
 
         return action_probs_arr
 
