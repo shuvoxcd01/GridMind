@@ -152,8 +152,9 @@ class QLearningExperienceReplay(BaseLearningAlgorithm):
             q_val = self.q_values[observation]
             q_values.append(q_val)
 
-        # Convert to tensor
-        q_values = torch.tensor(q_values, dtype=torch.float32)
+        # Convert to numpy array first, then to tensor (more efficient)
+        q_values = np.array(q_values, dtype=np.float32)
+        q_values = torch.from_numpy(q_values)
 
         return q_values
 
