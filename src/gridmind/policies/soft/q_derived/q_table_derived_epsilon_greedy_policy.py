@@ -17,8 +17,7 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         epsilon_min: float = 0.001,
         decay_rate: float = 0.01,
     ) -> None:
-        super().__init__(Q=q_table, epsilon=epsilon)
-        self.num_actions = num_actions
+        super().__init__(Q=q_table, epsilon=epsilon, num_actions=num_actions)
         self.action_space = action_space
         self.allow_decay = allow_decay
         self.epsilon_min = epsilon_min
@@ -66,3 +65,6 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
 
         if decayed_epsilon >= self.epsilon_min:
             self.set_epsilon(value=decayed_epsilon)
+
+        
+
