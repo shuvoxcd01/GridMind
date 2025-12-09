@@ -1,7 +1,11 @@
-from typing import Callable, Optional
+from typing import Callable, List, Optional
+from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
+from gridmind.utils.algorithm_util.knn_neighbor_retriever import KNNNeighborRetriever
+from gridmind.utils.algorithm_util.pareto_selector import ParetoSelector
+from gridmind.utils.algorithm_util.simple_replay_buffer import SimpleReplayBuffer
 from gymnasium import Env
 import torch
 
@@ -48,6 +52,22 @@ class NeuroEvolutionUtil:
                 done = terminated or truncated
 
         return sum_episode_return / average_over_episodes
+    
+    @staticmethod
+    @torch.no_grad()
+    def assign_novelty_scores(
+        population:List[NeuroAgent],
+        neighbor_retriever:KNNNeighborRetriever,
+        pareto_selector:ParetoSelector,
+        replay_buffer:SimpleReplayBuffer,
+        feature_constructor:Optional[Callable]=None):
+        
+        observations = replay_buffer.sample(1000)[0]  # Sample 1000 observations from the replay buffer
+        neighbor_retriever.update_observations_archive(observations)
+
+
+
+        
 
 
 if __name__ == "__main__":
