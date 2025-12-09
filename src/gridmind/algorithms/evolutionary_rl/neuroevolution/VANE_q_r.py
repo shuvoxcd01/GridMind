@@ -42,8 +42,8 @@ class QAssistedNeuroEvolution(
         policy_network_class: Type[BaseParameterizedPolicy] = DiscreteActionMLPPolicy,
         policy_network_creator_fn: Optional[Callable] = None,
         feature_constructor: Optional[Callable] = None,
-        mu: int = 150,
-        _lambda: int = 1000,
+        mu: int = 150, # number of parents
+        _lambda: int = 1000, # number of offspring
         parent_selection_fn: Optional[Callable] = None,
         mutation_probability: float = 0.1,
         mutation_prob_min: float = 0.01,
@@ -75,6 +75,7 @@ class QAssistedNeuroEvolution(
         evaluate_q_derived_policy: bool = True,
         curate_elite_states: bool = True,
         log_random_k_score: bool = True,
+        use_novelty_search: bool = True,
     ):
 
         super().__init__(
@@ -112,6 +113,7 @@ class QAssistedNeuroEvolution(
             evaluate_q_derived_policy=evaluate_q_derived_policy,
             curate_elite_states=curate_elite_states,
             log_random_k_score=log_random_k_score,
+            use_novelty_search=use_novelty_search,
         )
 
         self.mutation_probability = mutation_probability
