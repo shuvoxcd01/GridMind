@@ -1,10 +1,7 @@
-from typing import Optional, Union
+from typing import List, Optional, Union
 import uuid
 
 from gridmind.policies.base_policy import BasePolicy
-from gridmind.policies.parameterized.discrete_action_mlp_policy import (
-    DiscreteActionMLPPolicy,
-)
 
 
 class NeuroAgent(object):
@@ -17,6 +14,7 @@ class NeuroAgent(object):
         id: Optional[Union[str, uuid.UUID]] = None,
         parent_id: Optional[Union[str, uuid.UUID]] = None,
         name_prefix: Optional[str] = None,
+        behavior_score: Optional[float] = None,
     ):
         self.policy = policy
         self.fitness = fitness
@@ -26,6 +24,17 @@ class NeuroAgent(object):
         self.name_prefix = name_prefix
         self.score = score
         self.info = {}
+        self._behavior_score = behavior_score
+
+    @property
+    def behavior_score(self):
+        assert self._behavior_score is not None, "Behavior score has not been set."
+        
+        return self._behavior_score
+
+    @behavior_score.setter
+    def behavior_score(self, value):
+        self._behavior_score = value
 
     def __repr__(self):
         return f"NeuroAgent(id={self.id}, fitness={self.fitness}, starting_generation={self.starting_generation})"
@@ -51,4 +60,12 @@ class NeuroAgent(object):
             "parent_id": self.parent_id,
             "fitness": self.fitness,
             "starting_generation": self.starting_generation,
+            "behavior_score": self.behavior_score,
         }
+
+    @staticmethod
+    def get_pareto_objectives(agent: "NeuroAgent")-> List[float]:
+        assert agent.fitness is not None, "Agent fitness must be defined for Pareto selection."
+        assert agent.behavior_score is not None, "Agent behavior_score must be defined for Pareto selection."
+        
+        return [agent.fitness, agent.behavior_score]
