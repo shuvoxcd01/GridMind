@@ -8,6 +8,8 @@ from gridmind.algorithms.tabular.temporal_difference.control.q_learning_experien
 from gridmind.policies.parameterized.base_parameterized_policy import (
     BaseParameterizedPolicy,
 )
+from gridmind.utils.algorithm_util.knn_neighbor_retriever import KNNNeighborRetriever
+from gridmind.utils.algorithm_util.pareto_selector import ParetoConfig, ParetoSelector
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
     BasicPerformanceEvaluator,
 )
@@ -81,6 +83,7 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         evaluate_q_derived_policy: bool = True,
         curate_elite_states: bool = True,
         log_random_k_score: bool = True,
+        use_novelty_search: bool = True,
     ):
         super().__init__(name=name, env=env, write_summary=False)
         self.logger.setLevel(logging.INFO)
@@ -104,12 +107,40 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         self.episode_states_buffer = SimpleReplayBuffer()
         self.avg_q_value = 0.0
 
+        # Novelty search setup
+        self.use_novelty_search = use_novelty_search
+        
+        if self.use_novelty_search:
+            self.logger.info("Using Novelty Search in fitness evaluation.")
+            self.neighbor_retriever = KNNNeighborRetriever(k=3)
+            pareto_config = ParetoConfig(minimize=[False, False])  # Maximize both fitness and behavior_score
+            self.pareto_selector = ParetoSelector(
+                objective_fn=NeuroAgent.get_pareto_objectives,
+                config=pareto_config
+            )
+
+
         # Selection fns
         self.parent_selection_fn = (
             parent_selection_fn
             if parent_selection_fn is not None
             else Selection.truncation_selection
         )
+
+        if parent_selection_fn is not None:
+            self.logger.info(
+                f"Using custom parent selection function: {parent_selection_fn.__name__}"
+            )
+            self.parent_selection_fn = parent_selection_fn
+        elif self.use_novelty_search:
+            self.logger.info(
+                "Using Pareto selection based on fitness and behavior score as parent selection function."
+            )
+            self.parent_selection_fn = self.pareto_selector.select  # type: ignore
+        else:
+            self.logger.info("Using default truncation selection as parent selection function.")
+            self.parent_selection_fn = Selection.truncation_selection
+
         self.selection_fn_to_train_q_fn = (
             selection_fn_to_train_q_fn
             if selection_fn_to_train_q_fn is not None
@@ -168,6 +199,7 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
+        
     @abstractmethod
     def _adapt_mutation(self, generation: int):
         raise NotImplementedError()
@@ -520,6 +552,9 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
             )
 
         for num_gen in trange(num_generations):
+            generation_start_time = time.time()
+            self.logger.info(f"Starting generation {self.generation}")
+
             if self.write_summary:
                 self.summary_writer.add_scalar(
                     "Replay_Buffer_Size (beginning of generation)",
@@ -536,6 +571,11 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 self.fitness_evaluation_num_samples
             )
 
+            if self.use_novelty_search:
+                if self.generation % 10 == 0: # Todo: Make this a parameter
+                    self.neighbor_retriever.update_observations_archive(sample_observations)
+                self.neighbor_retriever.update_population(self.population) #type: ignore
+
             for agent in self.population:
                 (
                     agent.fitness,
@@ -543,11 +583,30 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                     agent.info["sum_expected_q"],
                 ) = self.evaluate_fitness_with_q_fn(agent.policy, sample_observations)
 
+                if self.use_novelty_search:
+                    assert type(agent) == NeuroAgent, "Agent must be of type NeuroAgent for novelty assignment."
+
+                    distances, neighbor_ids, sources = self.neighbor_retriever.get_k_nearest_neighbors(
+                        query_individual=agent,
+                        search_population=True,
+                        search_archive=True
+                    )
+                    
+                    agent.behavior_score = np.mean(distances).item()                       
+
+
             self._calculate_and_log_population_statistics()
 
-            self.top_k = Selection.truncation_selection(
-                population=self.population, num_selection=self.num_top_k
-            )
+            if self.use_novelty_search:
+                self.top_k = self.pareto_selector.select(
+                    population=self.population, num_selection=self.num_top_k # type: ignore
+                    )
+                
+                self._record_pareto_info(selection_objective="top_k_selection")
+            else:
+                self.top_k = Selection.truncation_selection(
+                    population=self.population, num_selection=self.num_top_k # type: ignore
+                )
 
             if self.log_random_k_score:
                 self._record_random_k_scores()
@@ -681,6 +740,9 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 population=self.population, num_selection=self.mu
             )
 
+            if self.use_novelty_search and self.parent_selection_fn == self.pareto_selector.select:
+                self._record_pareto_info(selection_objective="parent_selection")
+
             self.population = deepcopy(parents)
 
             # Add elites to parents if not already present
@@ -696,7 +758,45 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
 
             self._generation_count_global += 1
 
+            generation_end_time = time.time()
+            
+            self.logger.info(
+                f"Generation {self.generation - 1} completed in {generation_end_time - generation_start_time:.2f} seconds."
+            )
+            if self.write_summary:
+                self.summary_writer.add_scalar(
+                    "Generation_Training_Time_Seconds",
+                    generation_end_time - generation_start_time,
+                    global_step=self.generation - 1,
+                )
+                self.summary_writer.add_scalar(
+                    "Replay_Buffer_Size (end of generation)",
+                    self.replay_buffer.size(),
+                    global_step=self.generation,
+                )
+                self.summary_writer.add_scalar(
+                    "Population_Size (end of generation)",
+                    len(self.population),
+                    global_step=self.generation,
+                )
+
         return self.best_agent
+
+    def _record_pareto_info(self, selection_objective: str):
+        img = self.pareto_selector.render(
+                    population=self.population,
+                    selected=self.top_k,
+                    mode="rgb_array"
+                )
+        if self.summary_writer is not None:
+            # Convert from HWC (Height, Width, Channels) to CHW (Channels, Height, Width) format
+            # TensorBoard expects CHW format or we need to specify dataformats='HWC'
+            self.summary_writer.add_image(
+                        f"Pareto_Fronts/{selection_objective}",
+                        img,
+                        global_step=self.generation,
+                        dataformats='HWC'
+                    )
 
     @abstractmethod
     def generate_offspring_with_mutation(self, parent):
@@ -709,6 +809,7 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         avg_mean_expected_q = sum(
             [agent.info["mean_expected_q"] for agent in self.population]
         ) / len(self.population)
+
         avg_sum_expected_q = sum(
             [agent.info["sum_expected_q"] for agent in self.population]
         ) / len(self.population)
@@ -740,6 +841,21 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 global_step=self.generation,
             )
 
+        if self.use_novelty_search:
+            avg_behavior_score = sum(
+                [agent.behavior_score for agent in self.population]
+            ) / len(self.population)
+
+            self.logger.info(
+                f"Generation: {self.generation}, Average Behavior Score: {avg_behavior_score}"
+            )
+            if self.summary_writer is not None:
+                self.summary_writer.add_scalar(
+                    "Population_Average_Behavior_Score",
+                    avg_behavior_score,
+                    global_step=self.generation,
+                )
+
     def _record_random_k_scores(self):
         random_k = Selection.random_selection(
             population=self.population, num_selection=self.num_top_k
@@ -760,6 +876,23 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 random_k_avg_score,
                 global_step=self.generation,
             )
+
+        if self.use_novelty_search:
+            random_k_behavior_scores = [agent.behavior_score for agent in random_k]
+            random_k_avg_behavior_score = (
+                sum(random_k_behavior_scores) / len(random_k_behavior_scores)
+            )
+
+            self.logger.info(
+                f"Generation: {self.generation}, Random K Average Behavior Score: {random_k_avg_behavior_score}"
+            )
+
+            if self.summary_writer is not None:
+                self.summary_writer.add_scalar(
+                    "Random_K_Average_Behavior_Score",
+                    random_k_avg_behavior_score,
+                    global_step=self.generation,
+                )
 
     def _record_top_k_metrics(self, generation):
         top_k_avg_fitness = sum([agent.fitness for agent in self.top_k]) / len(
@@ -784,6 +917,20 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 top_k_avg_score,
                 global_step=generation,
             )
+
+        if self.use_novelty_search:
+            top_k_avg_behavior_score = (
+                sum([agent.behavior_score for agent in self.top_k]) / len(self.top_k)
+            )
+            self.logger.info(
+                f"Generation: {generation}, Top K Average Behavior Score: {top_k_avg_behavior_score}"
+            )
+            if self.summary_writer is not None:
+                self.summary_writer.add_scalar(
+                    "Top_K_Average_Behavior_Score",
+                    top_k_avg_behavior_score,
+                    global_step=generation,
+                )
 
     def _record_elites_metrics(self, generation):
         elite_avg_fitness = sum([agent.fitness for agent in self.elites]) / len(
@@ -810,6 +957,20 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 elite_avg_score,
                 global_step=generation,
             )
+
+        if self.use_novelty_search:
+            elite_avg_behavior_score = (
+                sum([agent.behavior_score for agent in self.elites]) / len(self.elites)
+            )
+            self.logger.info(
+                f"Generation: {generation}, Elite Average Behavior Score: {elite_avg_behavior_score}"
+            )
+            if self.summary_writer is not None:
+                self.summary_writer.add_scalar(
+                    "Elite_Average_Behavior_Score",
+                    elite_avg_behavior_score,
+                    global_step=generation,
+                )
 
         if self.is_adaptive_mutation_enabled:
             self._adapt_mutation(generation=generation)
