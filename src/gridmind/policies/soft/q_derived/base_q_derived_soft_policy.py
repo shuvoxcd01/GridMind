@@ -3,13 +3,15 @@ import random
 from typing import Any, Mapping, Union
 
 from gridmind.policies.soft.base_soft_policy import BaseSoftPolicy
+import numpy as np
 
 
 class BaseQDerivedSoftPolicy(BaseSoftPolicy):
-    def __init__(self, Q: Union[Any, Mapping], epsilon: float) -> None:
+    def __init__(self, Q: Union[Any, Mapping], epsilon: float, num_actions: int) -> None:
         super().__init__()
         self.Q = Q
         self.epsilon = epsilon
+        self.num_actions = num_actions
 
     def update(self, state, action):
         raise NotImplementedError()
@@ -52,6 +54,20 @@ class BaseQDerivedSoftPolicy(BaseSoftPolicy):
             greedy_action_prob if action == greedy_action else each_random_action_prob
         )
 
+        return action_probs
+    
+    def get_all_action_probabilities(self, states):
+        action_probs = []
+        
+        for state in states:
+            state_action_probs = []
+            for action in range(self.num_actions):
+                prob = self.get_action_prob(state, action)
+                state_action_probs.append(prob)
+            action_probs.append(state_action_probs)
+        
+        action_probs = np.array(action_probs).squeeze()
+        
         return action_probs
 
     def get_action_deterministic(self, state):

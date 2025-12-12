@@ -195,9 +195,6 @@ notebooks/*
 # text files
 *.txt
 
-*_r.py
-*_r *.py
-
 *test.py
 
 .idea/
@@ -205,6 +202,5 @@ example_usage/*
 
 *.mp4
 *.pth
-
 .gitignore
 CITATION.cff

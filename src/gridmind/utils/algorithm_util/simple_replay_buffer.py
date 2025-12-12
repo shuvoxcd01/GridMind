@@ -63,6 +63,16 @@ class SimpleReplayBuffer:
         """Clear the buffer."""
         self.buffer.clear()
 
+    def __len__(self):
+        """Return the current buffer size."""
+        return self.size()
+
+    def pop(self, num_elements: int = 1):
+        """Pop elements from the buffer."""
+        if num_elements > self.size():
+            raise ValueError("Number of elements to pop is greater than buffer size.")
+        return [self.buffer.popleft() for _ in range(num_elements)]
+
 
 if __name__ == "__main__":
     buffer = SimpleReplayBuffer(None)
