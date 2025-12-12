@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import logging
+import random
 from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
 from gridmind.algorithms.tabular.temporal_difference.control.q_learning_experience_replay import (
     QLearningExperienceReplay,
@@ -13,17 +14,14 @@ from gridmind.utils.algorithm_util.pareto_selector import ParetoConfig, ParetoSe
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
     BasicPerformanceEvaluator,
 )
+from gridmind.utils.vis_util import VideoUtil
 from torch.utils.tensorboard import SummaryWriter
 
-import numbers
 import os
 import time
 from typing import Callable, List, Optional, Type, Union
 
 from gridmind.algorithms.evolutionary_rl.neuroevolution.neuro_agent import NeuroAgent
-from gridmind.algorithms.evolutionary_rl.neuroevolution.neuroevolution_util import (
-    NeuroEvolutionUtil,
-)
 from gridmind.algorithms.function_approximation.temporal_difference.control.deep_q_learning_experience_r import (
     DeepQLearningWithExperienceReplay,
 )
@@ -40,6 +38,7 @@ import numpy as np
 import gymnasium as gym
 
 from data import SAVE_DATA_DIR
+from gymnasium.wrappers import RecordVideo
 
 
 class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
@@ -84,6 +83,12 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         curate_elite_states: bool = True,
         log_random_k_score: bool = True,
         use_novelty_search: bool = True,
+        is_video_recording_enabled: bool = False,
+        video_recording_max_steps: int = 500,
+        record_video_save_dir: Optional[str] = None,
+        video_recording_interval: int = 10,
+        best_agent_save_interval: int = 10,
+        q_derived_evaluation_interval: int = 10,
     ):
         super().__init__(name=name, env=env, write_summary=False)
         self.logger.setLevel(logging.INFO)
@@ -199,7 +204,13 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         elif isinstance(population[0], NeuroAgent):
             self.population = population
 
-        
+        self.enable_video_recording = is_video_recording_enabled
+        self.video_recording_max_steps = video_recording_max_steps
+        self.record_video_save_dir = record_video_save_dir
+        self.video_recording_interval = video_recording_interval
+        self.save_best_agent_interval = best_agent_save_interval
+        self.q_derived_evaluation_interval = q_derived_evaluation_interval
+
     @abstractmethod
     def _adapt_mutation(self, generation: int):
         raise NotImplementedError()
@@ -693,37 +704,8 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
 
             self._record_top_k_metrics(self.generation)
             self._record_elites_metrics(self.generation)
-
-            if self.generation % 10 == 0 and self.evaluate_q_derived_policy:
-                q_derived_policy = self.q_learner.get_policy()
-                self.logger.debug("Evaluating Q Derived Policy")
-                q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
-                self.logger.info(f"Q Derived Policy Score: {q_derived_policy_score}")
-                self.save_q(
-                    save_dir=os.path.join(
-                        SAVE_DATA_DIR,
-                        self.env_name,
-                        self.name,
-                        "q_network_or_table",
-                        f"generation_{self.generation}",
-                    )
-                )
-                self.save_best_agent(
-                    save_dir=os.path.join(
-                        SAVE_DATA_DIR,
-                        self.env_name,
-                        self.name,
-                        "best_agent",
-                        f"generation_{self.generation}",
-                    )
-                )
-
-                if self.summary_writer is not None:
-                    self.summary_writer.add_scalar(
-                        "Q_Derived_Policy_Score",
-                        q_derived_policy_score,
-                        global_step=self.generation,
-                    )
+            self._save_best_agent_snapshot()
+            self._record_q_derived_policy_score()
 
             if self.train_q_learner:
                 self.logger.info(
@@ -781,6 +763,50 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 )
 
         return self.best_agent
+
+    def _record_q_derived_policy_score(self):
+        if self.evaluate_q_derived_policy and self.generation % self.q_derived_evaluation_interval == 0:
+            q_derived_policy = self.q_learner.get_policy()
+            self.logger.debug("Evaluating Q Derived Policy")
+            q_derived_policy_score = self.evaluate_score(policy=q_derived_policy)
+            self.logger.info(f"Q Derived Policy Score: {q_derived_policy_score}")
+            self.save_q(
+                    save_dir=os.path.join(
+                        SAVE_DATA_DIR,
+                        self.env_name,
+                        self.name,
+                        "q_network_or_table",
+                        f"generation_{self.generation}",
+                    )
+                )
+
+            if self.summary_writer is not None:
+                self.summary_writer.add_scalar(
+                        "Q_Derived_Policy_Score",
+                        q_derived_policy_score,
+                        global_step=self.generation,
+                    )
+
+    def _save_best_agent_snapshot(self):
+        if self.generation % self.save_best_agent_interval == 0:
+            self.save_best_agent(
+                        save_dir=os.path.join(
+                            SAVE_DATA_DIR,
+                            self.env_name,
+                            self.name,
+                            "best_agent",
+                            f"generation_{self.generation}",
+                        )
+                    )
+
+        if self.enable_video_recording and self.generation % self.video_recording_interval == 0:
+            self.record_video(
+                    policy=self.best_agent.policy, # type: ignore
+                    num_episodes=2,
+                    to_tensorboard=False,
+                    suffix="Best_Agent",
+                    max_episode_length=self.video_recording_max_steps
+                )
 
     def _record_pareto_info(self, selection_objective: str):
         img = self.pareto_selector.render(
@@ -918,6 +944,19 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
                 global_step=generation,
             )
 
+        if self.enable_video_recording and generation % self.video_recording_interval == 0:
+            assert self.top_k is not None, "Top K agents not found."
+
+            random_top_k_agent = random.choice(self.top_k)
+            self.record_video(
+                policy=random_top_k_agent.policy, # type: ignore
+                num_episodes=2,
+                to_tensorboard=False,
+                suffix=f"Random_Top-K",
+                max_episode_length=self.video_recording_max_steps
+
+            )
+
         if self.use_novelty_search:
             top_k_avg_behavior_score = (
                 sum([agent.behavior_score for agent in self.top_k]) / len(self.top_k)
@@ -951,11 +990,25 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         self.logger.info(
             f"Generation: {generation}, Elite Average Score: {elite_avg_score}"
         )
+
         if self.summary_writer is not None:
             self.summary_writer.add_scalar(
                 "Elite_Average_Score",
                 elite_avg_score,
                 global_step=generation,
+            )
+
+        if self.enable_video_recording and generation % self.video_recording_interval == 0:
+            assert self.elites is not None, "Elite agents not found."
+
+            random_elite_agent = random.choice(self.elites)
+            self.record_video(
+                policy=random_elite_agent.policy, # type: ignore
+                num_episodes=2,
+                to_tensorboard=False,
+                suffix=f"Random_Elite",
+                max_episode_length=self.video_recording_max_steps
+
             )
 
         if self.use_novelty_search:
@@ -1007,6 +1060,95 @@ class BaseQAssistedNeuroEvolution(BaseEvoRLAlgorithm, ABC):
         self, save_dir, state_dict_only, network_name, agent_network
     ):
         raise NotImplementedError()
+    
+    def record_video(
+        self,
+        policy: DiscreteActionMLPPolicy,
+        num_episodes: int = 5,
+        max_episode_length: Optional[int] = None,
+        to_tensorboard: bool = False,
+        suffix: str = "",
+    ):
+        self.logger.info(f"Recording video for generation {self.generation}, suffix: {suffix}")
+
+        # assert that the environment is a valid gymnasium environment
+        assert isinstance(self.env, gym.Env), "Environment must be a valid gymnasium environment."
+
+        if self.record_video_save_dir is None:
+            video_save_path = os.path.join(
+                SAVE_DATA_DIR,
+                self.env_name,
+                "videos",
+                self.name,
+                suffix,
+                f"generation_{self.generation}.mp4",
+            )
+        else:
+            video_save_path = os.path.join(
+                self.record_video_save_dir,
+                self.env_name,
+                "videos",
+                self.name,
+                suffix,
+                f"generation_{self.generation}.mp4",
+            )
+
+        # create directory if it does not exist
+        os.makedirs(os.path.dirname(video_save_path), exist_ok=True)    
+
+        env = None
+        try:
+            env = gym.make(self.env_name, render_mode="rgb_array")
+            env = RecordVideo(
+                env,
+                video_folder=os.path.dirname(video_save_path),
+                episode_trigger=lambda episode_id: True,
+                name_prefix=os.path.basename(video_save_path).replace(".mp4", ""),
+            )
+
+            for episode in range(num_episodes):
+                obs, info = env.reset()
+                done = False
+                step = 0
+
+                while not done and (max_episode_length is None or step < max_episode_length):
+                    preprocessed_obs = self._preprocess(obs)
+                    action = policy.get_action(preprocessed_obs)
+                    obs, reward, terminated, truncated, info = env.step(action)
+                    done = terminated or truncated
+                    step += 1
+
+        finally:
+            # Ensure environment is properly closed even if an error occurs
+            if env is not None:
+                try:
+                    env.close()
+                except Exception as e:
+                    self.logger.warning(f"Error closing video recording environment: {e}")
+            
+            # Small delay to ensure video files are written
+            import time
+            time.sleep(0.5)
+
+        if to_tensorboard and self.summary_writer is not None:
+            video = None
+            try:
+                video = VideoUtil.load_video_as_tensor(video_save_path, logger=self.logger)
+                if video is not None:
+                    self.summary_writer.add_video(
+                        tag=f"Evaluation_Video_{suffix}",
+                        vid_tensor=video,
+                        global_step=self.generation,
+                        fps=30,
+                    )
+            finally:
+                # Clean up video tensor from memory
+                if video is not None:
+                    del video
+                import gc
+                gc.collect()
+
+        self.logger.info(f"Video saved to {video_save_path}")
 
 
 if __name__ == "__main__":

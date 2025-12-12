@@ -82,6 +82,12 @@ class DeepQAssistedNeuroEvolution(BaseQAssistedNeuroEvolution):
         evaluate_q_derived_policy: bool = True,
         curate_elite_states: bool = True,
         log_random_k_score: bool = True,
+        use_novelty_search: bool = True,
+        is_video_recording_enabled: bool = False,
+        record_video_save_dir: Optional[str] = None,
+        video_recording_interval: int = 10,
+        best_agent_save_interval: int = 10,
+        q_derived_evaluation_interval: int = 10,
     ):
         super().__init__(
             name="DeepQAssistedNeuroEvolution",
@@ -118,6 +124,12 @@ class DeepQAssistedNeuroEvolution(BaseQAssistedNeuroEvolution):
             evaluate_q_derived_policy=evaluate_q_derived_policy,
             curate_elite_states=curate_elite_states,
             log_random_k_score=log_random_k_score,
+            use_novelty_search=use_novelty_search,
+            is_video_recording_enabled=is_video_recording_enabled,
+            record_video_save_dir=record_video_save_dir,
+            video_recording_interval=video_recording_interval,
+            best_agent_save_interval=best_agent_save_interval,
+            q_derived_evaluation_interval=q_derived_evaluation_interval,
         )
 
         self.mutation_mean = mutation_mean

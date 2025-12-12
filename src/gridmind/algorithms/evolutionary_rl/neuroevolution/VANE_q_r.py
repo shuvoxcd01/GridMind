@@ -76,6 +76,12 @@ class QAssistedNeuroEvolution(
         curate_elite_states: bool = True,
         log_random_k_score: bool = True,
         use_novelty_search: bool = True,
+        is_video_recording_enabled: bool = False,
+        video_recording_max_steps: int = 500,
+        record_video_save_dir: Optional[str] = None,
+        video_recording_interval: int = 10,
+        best_agent_save_interval: int = 10,
+        q_derived_evaluation_interval: int = 10,
     ):
 
         super().__init__(
@@ -114,6 +120,12 @@ class QAssistedNeuroEvolution(
             curate_elite_states=curate_elite_states,
             log_random_k_score=log_random_k_score,
             use_novelty_search=use_novelty_search,
+            is_video_recording_enabled=is_video_recording_enabled,
+            video_recording_max_steps=video_recording_max_steps,
+            record_video_save_dir=record_video_save_dir,
+            video_recording_interval=video_recording_interval,
+            best_agent_save_interval=best_agent_save_interval,
+            q_derived_evaluation_interval=q_derived_evaluation_interval,
         )
 
         self.mutation_probability = mutation_probability
