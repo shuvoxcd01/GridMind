@@ -23,8 +23,10 @@ class QLearning(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("Q-Learning", env=env)
+        super().__init__("Q-Learning", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.num_actions = self.env.action_space.n
         self.epsilon_decay = epsilon_decay
 
