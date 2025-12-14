@@ -23,9 +23,11 @@ class Reinforce(BaseLearningAlgorithm):
         discount_factor: float = 0.99,
         feature_constructor=None,
         grad_clip_value: float = 1.0,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
 
-        super().__init__("Reinforce", env)
+        super().__init__("Reinforce", env, summary_dir=summary_dir, write_summary=write_summary)
         self.policy = policy
         self.step_size = step_size
         self.discount_factor = discount_factor

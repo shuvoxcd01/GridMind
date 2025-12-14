@@ -25,8 +25,10 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         epsilon_decay: bool = True,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-        super().__init__("Episodic-Semi-Gradient-SARSA", env=env)
+        super().__init__("Episodic-Semi-Gradient-SARSA", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.step_size = step_size
         self.discount_factor = discount_factor
 

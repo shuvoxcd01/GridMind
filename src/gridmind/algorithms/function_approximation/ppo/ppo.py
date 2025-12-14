@@ -29,8 +29,10 @@ class PPO(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
         entropy_coefficient: float = 0.02,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-        super().__init__("ProximalPolicyOptimization", env)
+        super().__init__("ProximalPolicyOptimization", env, summary_dir=summary_dir, write_summary=write_summary)
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
         self.discount_factor = discount_factor

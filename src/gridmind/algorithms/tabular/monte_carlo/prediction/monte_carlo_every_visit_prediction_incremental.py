@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.base_policy import BasePolicy
@@ -20,8 +21,10 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         policy: BasePolicy,
         step_size: float = 0.01,
         discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCEveryVisitPredictionIncremental", env=env)
+        super().__init__(name="MCEveryVisitPredictionIncremental", env=env, summary_dir=summary_dir, write_summary=write_summary)
 
         self.policy = policy
         self.V = defaultdict(float)

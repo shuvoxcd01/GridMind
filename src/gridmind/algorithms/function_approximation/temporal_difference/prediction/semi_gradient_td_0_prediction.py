@@ -19,8 +19,10 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
         step_size: float = 0.1,
         discount_factor: float = 0.9,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="Semi-gradient-TD-0-Prediction")
+        super().__init__(name="Semi-gradient-TD-0-Prediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.step_size = step_size
         self.env = env
         self.policy = policy

@@ -1,14 +1,12 @@
-from collections import defaultdict
+from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.policies.base_policy import BasePolicy
 from gymnasium import Env
-from tqdm import tqdm
-import numpy as np
 
 
 class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
-    def __init__(self, env: Env, policy: BasePolicy) -> None:
-        super().__init__(name="MonteCarloOnPolicyFirstVisit", env=env)
+    def __init__(self, env: Env, policy: BasePolicy, summary_dir: Optional[str] = None, write_summary: bool = True) -> None:
+        super().__init__(name="MonteCarloOnPolicyFirstVisit", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.policy = policy
         # ToDo: WIP
 

@@ -1,5 +1,6 @@
 from collections import defaultdict
 import itertools
+from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.base_policy import BasePolicy
@@ -17,8 +18,10 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         n: int,
         step_size: float = 0.01,
         discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("N-Step-TD-Prediction", env=env)
+        super().__init__("N-Step-TD-Prediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.step_size = step_size
         self.V = defaultdict(int)
         self.policy = policy

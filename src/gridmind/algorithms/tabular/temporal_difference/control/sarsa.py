@@ -24,8 +24,10 @@ class SARSA(BaseLearningAlgorithm):
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("SARSA", env=env)
+        super().__init__("SARSA", env=env, summary_dir=summary_dir, write_summary=write_summary)
         self.num_actions = self.env.action_space.n
 
         self.feature_constructor = feature_constructor
