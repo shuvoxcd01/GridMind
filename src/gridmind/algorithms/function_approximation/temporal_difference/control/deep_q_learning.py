@@ -57,12 +57,21 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self._current_step = 0
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        self.default_save_dir = os.path.join(
-            SAVE_DATA_DIR,
-            env_name,
-            self.name,
-            datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
-        )
+        if SAVE_DATA_DIR is not None:
+            self.default_save_dir = os.path.join(
+                SAVE_DATA_DIR,
+                env_name,
+                self.name,
+                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
+            )
+        else:
+            self.default_save_dir = os.path.join(
+                "saved_models",
+                env_name,
+                self.name,
+                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
+            )
+            
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
 
