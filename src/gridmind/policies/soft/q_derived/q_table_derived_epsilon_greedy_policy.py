@@ -38,8 +38,13 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def update_q(self, state, action, value: float):
         self.Q[state][action] = value
 
-    def _get_greedy_action(self, state):
-        action = np.argmax(self.Q[state])
+    def _get_greedy_action(self, state, action_mask=None):
+        if action_mask is not None:
+            q_values = self.Q[state]
+            masked_q_values = np.where(action_mask, q_values, -np.inf)
+            action = np.argmax(masked_q_values)
+        else:
+            action = np.argmax(self.Q[state])
 
         assert (
             action in self.action_space if self.action_space is not None else True

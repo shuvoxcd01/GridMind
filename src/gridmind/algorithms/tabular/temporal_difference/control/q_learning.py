@@ -83,7 +83,9 @@ class QLearning(BaseLearningAlgorithm):
             done = False
 
             while not done:
-                action = self.policy.get_action(obs)
+                action_mask = info.get("action_mask", None)
+                action = self.policy.get_action(obs, action_mask=action_mask)
+                
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
 
                 self.q_values[obs][action] = self.q_values[obs][
