@@ -20,7 +20,12 @@ class TD0Prediction(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__(name="TD-0-Prediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            name="TD-0-Prediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.V = defaultdict(int)
         self.policy = policy

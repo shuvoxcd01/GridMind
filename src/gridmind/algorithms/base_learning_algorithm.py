@@ -11,9 +11,6 @@ from gridmind.utils.logtools.async_tensorboard_logger import AsyncTensorboardLog
 from gridmind.utils.performance_evaluation.base_performance_evaluator import (
     BasePerformanceEvaluator,
 )
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
-    BasicPerformanceEvaluator,
-)
 from gridmind.wrappers.policy_wrappers.preprocessed_observation_policy_wrapper import (
     PreprocessedObservationPolicyWrapper,
 )
@@ -134,7 +131,6 @@ class BaseLearningAlgorithm(ABC):
     def get_state_value_fn(
         self, force_functional_interface: bool = True, autopreprocess: bool = False
     ):
-
         if not autopreprocess:
             return self._get_state_value_fn(
                 force_functional_interface=force_functional_interface

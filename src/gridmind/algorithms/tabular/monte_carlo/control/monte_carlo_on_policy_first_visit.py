@@ -5,8 +5,19 @@ from gymnasium import Env
 
 
 class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
-    def __init__(self, env: Env, policy: BasePolicy, summary_dir: Optional[str] = None, write_summary: bool = True) -> None:
-        super().__init__(name="MonteCarloOnPolicyFirstVisit", env=env, summary_dir=summary_dir, write_summary=write_summary)
+    def __init__(
+        self,
+        env: Env,
+        policy: BasePolicy,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
+    ) -> None:
+        super().__init__(
+            name="MonteCarloOnPolicyFirstVisit",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy = policy
         # ToDo: WIP
 

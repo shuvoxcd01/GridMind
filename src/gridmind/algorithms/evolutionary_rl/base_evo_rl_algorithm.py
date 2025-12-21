@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 from gridmind.policies.base_policy import BasePolicy
@@ -13,7 +12,9 @@ class BaseEvoRLAlgorithm(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__(name, env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            name, env, summary_dir=summary_dir, write_summary=write_summary
+        )
 
     def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise NotImplementedError

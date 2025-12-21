@@ -17,7 +17,6 @@ import numbers
 
 
 class GradientMonteCarloPrediction(BaseFunctionApproximationBasedLearingAlgorithm):
-
     def __init__(
         self,
         env: Env,

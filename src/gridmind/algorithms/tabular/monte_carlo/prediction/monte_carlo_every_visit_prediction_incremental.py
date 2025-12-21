@@ -24,7 +24,12 @@ class MonteCarloEveryVisitPredictionIncremental(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCEveryVisitPredictionIncremental", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            name="MCEveryVisitPredictionIncremental",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
 
         self.policy = policy
         self.V = defaultdict(float)

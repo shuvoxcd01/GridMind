@@ -30,7 +30,12 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-        super().__init__("OneStepActorCritic", env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "OneStepActorCritic",
+            env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
         self.discount_factor = discount_factor

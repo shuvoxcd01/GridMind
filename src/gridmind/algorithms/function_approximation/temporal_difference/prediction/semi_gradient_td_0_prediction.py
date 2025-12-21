@@ -1,4 +1,3 @@
-from collections import defaultdict
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
@@ -10,7 +9,6 @@ from tqdm import trange
 
 
 class SemiGradientTD0Prediction(BaseLearningAlgorithm):
-
     def __init__(
         self,
         env: gym.Env,
@@ -22,7 +20,12 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__(name="Semi-gradient-TD-0-Prediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            name="Semi-gradient-TD-0-Prediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.env = env
         self.policy = policy

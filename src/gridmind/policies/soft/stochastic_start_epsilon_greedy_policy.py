@@ -4,7 +4,6 @@ from typing import Optional
 from gymnasium.spaces.space import Space
 import numpy as np
 from gridmind.policies.soft.base_soft_policy import BaseSoftPolicy
-import torch
 
 
 class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):

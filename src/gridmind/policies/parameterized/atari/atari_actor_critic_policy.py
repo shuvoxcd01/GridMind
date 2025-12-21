@@ -1,13 +1,8 @@
 from gridmind.policies.parameterized.actor_critic_policy import ActorCriticPolicy
 from gridmind.policies.parameterized.atari.atari_policy import AtariPolicy
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions.categorical import Categorical
 
 
 class AtaricActorCriticPolicy(ActorCriticPolicy):
-
     def __init__(self, observation_shape, num_actions, channel_first: bool = True):
         self.channel_first = channel_first
         if self.channel_first:

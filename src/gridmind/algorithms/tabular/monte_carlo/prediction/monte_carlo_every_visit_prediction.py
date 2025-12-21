@@ -17,9 +17,19 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     """
 
     def __init__(
-        self, env: Env, policy: BasePolicy, discount_factor: float = 0.9, summary_dir: Optional[str] = None, write_summary: bool = True
+        self,
+        env: Env,
+        policy: BasePolicy,
+        discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCEveryVisitPrediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            name="MCEveryVisitPrediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
 
         self.policy = policy
         self.V = defaultdict(float)

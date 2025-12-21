@@ -7,7 +7,9 @@ import numpy as np
 
 
 class BaseQDerivedSoftPolicy(BaseSoftPolicy):
-    def __init__(self, Q: Union[Any, Mapping], epsilon: float, num_actions: int) -> None:
+    def __init__(
+        self, Q: Union[Any, Mapping], epsilon: float, num_actions: int
+    ) -> None:
         super().__init__()
         self.Q = Q
         self.epsilon = epsilon
@@ -34,7 +36,7 @@ class BaseQDerivedSoftPolicy(BaseSoftPolicy):
             valid_actions = np.where(action_mask)[0]
             random_action = np.random.choice(valid_actions)
             return random_action
-        
+
         if self.action_space:
             random_action = self.action_space.sample()
             return random_action
@@ -64,19 +66,19 @@ class BaseQDerivedSoftPolicy(BaseSoftPolicy):
         )
 
         return action_probs
-    
+
     def get_all_action_probabilities(self, states, action_mask=None):
         action_probs = []
-        
+
         for state in states:
             state_action_probs = []
             for action in range(self.num_actions):
                 prob = self.get_action_prob(state, action, action_mask=action_mask)
                 state_action_probs.append(prob)
             action_probs.append(state_action_probs)
-        
+
         action_probs = np.array(action_probs).squeeze()
-        
+
         return action_probs
 
     def get_action_deterministic(self, state, action_mask=None):

@@ -26,8 +26,9 @@ class Reinforce(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-
-        super().__init__("Reinforce", env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "Reinforce", env, summary_dir=summary_dir, write_summary=write_summary
+        )
         self.policy = policy
         self.step_size = step_size
         self.discount_factor = discount_factor
@@ -137,7 +138,6 @@ class Reinforce(BaseLearningAlgorithm):
 
 if __name__ == "__main__":
     import gymnasium as gym
-    from gymnasium.wrappers import NormalizeReward
 
     env = gym.make("CartPole-v1")
 

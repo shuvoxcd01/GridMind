@@ -2,7 +2,7 @@
 This module is based on the tile coding implementation from ```Tile Coding Software -- Reference Manual, Version 3.0``` by Rich S. Sutton (See: http://incompleteideas.net/tiles/tiles3.html).
 """
 
-from math import floor, log
+from math import floor
 from itertools import zip_longest
 
 import numpy as np

@@ -81,7 +81,7 @@ if __name__ == "__main__":
     batch = buffer.sample(2)
     print(batch)
     print(buffer.size())
-    batch_2 = buffer.sample(2, sequential=True) 
+    batch_2 = buffer.sample(2, sequential=True)
     print(batch_2)
     buffer.clear()
     print(buffer.size())

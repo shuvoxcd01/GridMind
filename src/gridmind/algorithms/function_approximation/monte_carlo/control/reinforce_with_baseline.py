@@ -31,8 +31,12 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-
-        super().__init__("ReinforceWithBaseline", env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "ReinforceWithBaseline",
+            env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy = policy
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
@@ -163,7 +167,6 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
 
 if __name__ == "__main__":
     import gymnasium as gym
-    from gymnasium.wrappers import NormalizeReward
     from gridmind.feature_construction.one_hot import OneHotEncoder
 
     env = gym.make(

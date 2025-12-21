@@ -60,7 +60,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def set_epsilon(self, value: float):
         if value < self.epsilon_min:
             self.logger.warning(
-                f"Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
+                "Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
             )
             value = self.epsilon_min
 

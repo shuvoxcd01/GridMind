@@ -1,7 +1,6 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.base_policy import BasePolicy
 
 from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
     BaseQDerivedSoftPolicy,
@@ -85,7 +84,7 @@ class QLearning(BaseLearningAlgorithm):
             while not done:
                 action_mask = info.get("action_mask", None)
                 action = self.policy.get_action(obs, action_mask=action_mask)
-                
+
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
 
                 self.q_values[obs][action] = self.q_values[obs][

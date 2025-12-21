@@ -1,5 +1,4 @@
 from copy import deepcopy
-import logging
 import multiprocessing
 import numbers
 import random

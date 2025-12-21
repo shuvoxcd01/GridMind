@@ -21,7 +21,12 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__("N-Step-TD-Prediction", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "N-Step-TD-Prediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.V = defaultdict(int)
         self.policy = policy

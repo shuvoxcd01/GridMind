@@ -71,7 +71,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                 self.name,
                 datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
             )
-            
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
 

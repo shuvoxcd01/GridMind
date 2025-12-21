@@ -55,7 +55,7 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def set_epsilon(self, value: float):
         if value < self.epsilon_min:
             self.logger.warning(
-                f"Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
+                "Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
             )
             value = self.epsilon_min
 
@@ -70,6 +70,3 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
 
         if decayed_epsilon >= self.epsilon_min:
             self.set_epsilon(value=decayed_epsilon)
-
-        
-

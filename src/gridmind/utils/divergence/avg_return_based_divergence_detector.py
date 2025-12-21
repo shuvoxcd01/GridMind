@@ -1,9 +1,7 @@
-from gridmind.policies.base_policy import BasePolicy
 from gridmind.utils.divergence.base_divergence_detector import BaseDivergenceDetector
 from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
     BasicPerformanceEvaluator,
 )
-from gymnasium import Env
 
 
 class AvgReturnBasedDivergenceDetector(BaseDivergenceDetector):

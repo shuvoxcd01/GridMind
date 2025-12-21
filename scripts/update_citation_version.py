@@ -2,6 +2,7 @@
 """
 Script to automatically update the version in CITATION.cff to match pyproject.toml
 """
+
 import sys
 import re
 from pathlib import Path

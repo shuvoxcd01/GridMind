@@ -1,4 +1,3 @@
-import copy
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
@@ -28,7 +27,12 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-        super().__init__("Episodic-Semi-Gradient-SARSA", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "Episodic-Semi-Gradient-SARSA",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.discount_factor = discount_factor
 

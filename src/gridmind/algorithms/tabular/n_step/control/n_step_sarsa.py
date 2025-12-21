@@ -29,7 +29,12 @@ class NStepSARSA(BaseLearningAlgorithm):
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ) -> None:
-        super().__init__("N-Step-SARSA", env=env, summary_dir=summary_dir, write_summary=write_summary)
+        super().__init__(
+            "N-Step-SARSA",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.n = n
         self.num_actions = self.env.action_space.n
 

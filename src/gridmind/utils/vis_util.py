@@ -71,7 +71,6 @@ def print_value_table(
     filename: str = None,
     append: bool = False,
 ):
-
     # Ensure inputs are of the same length
     if not (len(feature1) == len(feature2) == len(state_values)):
         raise ValueError("All input lists must have the same length.")
@@ -110,16 +109,18 @@ def print_value_table(
 
 class VideoUtil:
     """Utility class for video loading and processing operations."""
-    
+
     @staticmethod
-    def load_video_as_tensor(video_save_path: str, logger: Optional[logging.Logger] = None):
+    def load_video_as_tensor(
+        video_save_path: str, logger: Optional[logging.Logger] = None
+    ):
         """
         Load video file(s) and convert to tensor format for TensorBoard.
-        
+
         Args:
             video_save_path: Base path for the video files (without extension)
             logger: Optional logger for logging messages
-            
+
         Returns:
             torch.Tensor: Video tensor in format (N, T, C, H, W) where:
                 N = batch size (1)
@@ -131,7 +132,7 @@ class VideoUtil:
         """
         if logger is None:
             logger = logging.getLogger(__name__)
-        
+
         try:
             import torch
             import torchvision
@@ -143,49 +144,51 @@ class VideoUtil:
                 "Install with: pip install torch torchvision"
             )
             return None
-        
+
         # RecordVideo creates files with pattern: {name_prefix}-episode-{id}.mp4
         # Find the most recent video file matching the pattern
         video_dir = os.path.dirname(video_save_path)
         video_prefix = os.path.basename(video_save_path)
-        
+
         # Search for video files with the prefix
         video_files = glob.glob(os.path.join(video_dir, f"{video_prefix}*.mp4"))
-        
+
         if not video_files:
-            logger.warning(f"No video files found matching pattern: {video_save_path}*.mp4")
+            logger.warning(
+                f"No video files found matching pattern: {video_save_path}*.mp4"
+            )
             return None
-        
+
         # Use the most recently created video file
         latest_video = max(video_files, key=os.path.getctime)
         logger.info(f"Loading video from: {latest_video}")
-        
+
         video_frames = None
         try:
             # read_video returns (video_tensor, audio_tensor, info)
             # video_tensor shape: (T, H, W, C)
-            video_tensor, audio_tensor, info = read_video(latest_video, pts_unit='sec')
-            
+            video_tensor, audio_tensor, info = read_video(latest_video, pts_unit="sec")
+
             # Explicitly delete audio tensor to free memory
             del audio_tensor
-            
+
             # Convert from (T, H, W, C) to (N, T, C, H, W) format expected by TensorBoard
             # Permute dimensions: T, H, W, C -> T, C, H, W
             video_frames = video_tensor.permute(0, 3, 1, 2)
-            
+
             # Delete original tensor to free memory
             del video_tensor
-            
+
             # Add batch dimension: T, C, H, W -> 1, T, C, H, W
             video_frames = video_frames.unsqueeze(0)
-            
+
             logger.info(f"Loaded video with shape: {video_frames.shape}")
-            
+
             # Force garbage collection to free up memory
             gc.collect()
-            
+
             return video_frames
-            
+
         except Exception as e:
             logger.error(f"Error loading video {latest_video}: {str(e)}")
             # Clean up on error
