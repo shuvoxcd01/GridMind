@@ -1,8 +1,8 @@
-cff-version: 0.0.6
+cff-version: 0.0.7
 message: "If you use this software, please cite it as below."
 type: software
 title: "GridMind: A Reinforcement Learning Algorithms Library"
-version: 0.0.6
+version: 0.0.7
 date-released: 2024-08-23
 url: "https://github.com/shuvoxcd01/GridMind"
 repository-code: "https://github.com/shuvoxcd01/GridMind"
@@ -10,12 +10,12 @@ authors:
   - family-names: "Das"
     given-names: "Falguni Shuvo"
 abstract: >-
-  GridMind is a library of reinforcement learning (RL) algorithms that 
-  prioritizes tabular implementations to enhance understanding and facilitate 
-  hands-on experimentation with learning patterns in various RL algorithms. 
-  GridMind is compatible with gymnasium environments, making it easy to 
-  integrate with a wide range of standard RL environments. This library is 
-  designed to serve as a companion for readers of the book "Reinforcement 
+  GridMind is a library of reinforcement learning (RL) algorithms that
+  prioritizes tabular implementations to enhance understanding and facilitate
+  hands-on experimentation with learning patterns in various RL algorithms.
+  GridMind is compatible with gymnasium environments, making it easy to
+  integrate with a wide range of standard RL environments. This library is
+  designed to serve as a companion for readers of the book "Reinforcement
   Learning: An Introduction (2nd ed.)" by Richard S. Sutton and Andrew G. Barto.
 keywords:
   - "Reinforcement Learning"
