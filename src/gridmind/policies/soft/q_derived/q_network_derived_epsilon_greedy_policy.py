@@ -15,8 +15,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         epsilon_min=0.001,
         decay_rate=0.01,
     ):
-        super().__init__(Q=q_network, epsilon=epsilon)
-        self.num_actions = num_actions
+        super().__init__(Q=q_network, epsilon=epsilon, num_actions=num_actions)
         self.action_space = action_space
         self.allow_decay = allow_decay
         self.epsilon_min = epsilon_min
