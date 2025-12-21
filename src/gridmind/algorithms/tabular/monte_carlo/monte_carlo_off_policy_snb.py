@@ -1,13 +1,14 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.algorithms.monte_carlo.util.episode_collector import collect_episode
-from gridmind.algorithms.monte_carlo.util.trajectory import Trajectory
+
 from gridmind.policies.base_policy import BasePolicy
 from gridmind.policies.greedy.stochastic_start_greedy_policy import (
     StochasticStartGreedyPolicy,
 )
 from gridmind.policies.random_policy import RandomPolicy
+from gridmind.utils.algorithm_util.episode_collector import collect_episode
+from gridmind.utils.algorithm_util.trajectory import Trajectory
 from gymnasium import Env
 import numpy as np
 from tqdm import tqdm
@@ -20,8 +21,15 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
         target_policy: Optional[BasePolicy] = None,
         behavior_policy: Optional[BasePolicy] = None,
         discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCPolicyControl(off-policy-SnB)")
+        super().__init__(
+            name="MCPolicyControl(off-policy-SnB)",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.env = env
         self.num_actions = self.env.action_space.n
         self.actions = list(range(self.num_actions))
@@ -45,7 +53,10 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.target_policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         trajectory = Trajectory()
 
         for _ in tqdm(range(num_episodes)):
@@ -71,10 +82,10 @@ class MonteCarloOffPolicySnB(BaseLearningAlgorithm):
                     if greedy_action != action:
                         break
 
-                target_policy_action_prob = self.target_policy.get_action_probs(
+                target_policy_action_prob = self.target_policy.get_action_prob(
                     state=state, action=action
                 )
-                behavior_policy_action_prob = self.behavior_policy.get_action_probs(
+                behavior_policy_action_prob = self.behavior_policy.get_action_prob(
                     state=state, action=action
                 )
 

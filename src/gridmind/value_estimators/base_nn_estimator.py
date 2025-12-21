@@ -8,8 +8,8 @@ class BaseNNEstimator(nn.Module):
         observation_shape: tuple,
         num_hidden_layers: int = 0,
         num_outputs: int = 1,
-        in_features: int = 16,
-        out_features: int = 16,
+        in_features: int = 64,
+        out_features: int = 64,
         use_bias: bool = True,
     ):
         super().__init__()

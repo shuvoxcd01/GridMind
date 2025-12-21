@@ -21,6 +21,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         self.allow_decay = allow_decay
         self.epsilon_min = epsilon_min
         self.decay_rate = decay_rate
+        self.device = next(self.Q.parameters()).device
 
         assert 0 <= epsilon <= 1, "epsilon must be in rage 0 to 1."
         assert (
@@ -34,6 +35,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
 
     def set_network(self, network):
         self.Q = network
+        self.device = next(self.Q.parameters()).device
 
     def update(self, state, action):
         raise Exception(
@@ -46,6 +48,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         )
 
     def _get_greedy_action(self, state):
+        state = state.to(self.device)
         action = torch.argmax(self.Q(state)).cpu().detach().item()
 
         assert (
@@ -57,7 +60,7 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def set_epsilon(self, value: float):
         if value < self.epsilon_min:
             self.logger.warning(
-                f"Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
+                "Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
             )
             value = self.epsilon_min
 

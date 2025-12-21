@@ -17,8 +17,7 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
         epsilon_min: float = 0.001,
         decay_rate: float = 0.01,
     ) -> None:
-        super().__init__(Q=q_table, epsilon=epsilon)
-        self.num_actions = num_actions
+        super().__init__(Q=q_table, epsilon=epsilon, num_actions=num_actions)
         self.action_space = action_space
         self.allow_decay = allow_decay
         self.epsilon_min = epsilon_min
@@ -39,8 +38,13 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def update_q(self, state, action, value: float):
         self.Q[state][action] = value
 
-    def _get_greedy_action(self, state):
-        action = np.argmax(self.Q[state])
+    def _get_greedy_action(self, state, action_mask=None):
+        if action_mask is not None:
+            q_values = self.Q[state]
+            masked_q_values = np.where(action_mask, q_values, -np.inf)
+            action = np.argmax(masked_q_values)
+        else:
+            action = np.argmax(self.Q[state])
 
         assert (
             action in self.action_space if self.action_space is not None else True
@@ -51,7 +55,7 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
     def set_epsilon(self, value: float):
         if value < self.epsilon_min:
             self.logger.warning(
-                f"Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
+                "Trying to set epsilon value less than epsilon_min. Setting epsilon=epsilon_min"
             )
             value = self.epsilon_min
 

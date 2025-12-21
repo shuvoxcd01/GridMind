@@ -1,4 +1,6 @@
-from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import MonteCarloOffPolicy
+from gridmind.algorithms.tabular.monte_carlo.monte_carlo_off_policy import (
+    MonteCarloOffPolicy,
+)
 import rl_worlds
 import gymnasium as gym
 
@@ -6,7 +8,7 @@ env = gym.make("rl_worlds/GridWorld-v0")
 
 agent = MonteCarloOffPolicy(env=env)
 
-agent.train(num_episodes=10000)
+agent.train_episodes(num_episodes=10000)
 
 policy = agent.get_policy()
 

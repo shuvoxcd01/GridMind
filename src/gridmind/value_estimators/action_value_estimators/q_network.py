@@ -17,7 +17,6 @@ class QNetwork(BaseNNEstimator):
         )
 
     def forward(self, x):
-
         for hidden_layer in self.hidden_layers:
             x = hidden_layer(x)
 

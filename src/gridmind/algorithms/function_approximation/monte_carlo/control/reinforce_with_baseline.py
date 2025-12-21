@@ -28,9 +28,15 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
         discount_factor: float = 0.99,
         feature_constructor=None,
         grad_clip_value: float = 1.0,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-
-        super().__init__("ReinforceWithBaseline", env)
+        super().__init__(
+            "ReinforceWithBaseline",
+            env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy = policy
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
@@ -95,7 +101,10 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
-    def _train(self, num_episodes, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")
 
@@ -115,7 +124,7 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
                 obs = self._preprocess(obs)
-                log_prob = torch.log(self.policy.get_action_probs(obs, action))
+                log_prob = torch.log(self.policy.get_action_prob(obs, action))
                 value_pred = self.value_estimator(obs)
                 delta = discounted_return - value_pred
 
@@ -158,7 +167,6 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
 
 if __name__ == "__main__":
     import gymnasium as gym
-    from gymnasium.wrappers import NormalizeReward
     from gridmind.feature_construction.one_hot import OneHotEncoder
 
     env = gym.make(
@@ -191,4 +199,4 @@ if __name__ == "__main__":
     )
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=10000, prediction_only=False)
+    algorithm.train_episodes(num_episodes=10000, prediction_only=False)

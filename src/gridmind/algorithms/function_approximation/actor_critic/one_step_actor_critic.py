@@ -18,7 +18,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
-        num_actions: Optional[int]= None,
+        num_actions: Optional[int] = None,
         policy: Optional[DiscreteActionMLPPolicy] = None,
         value_estimator: Optional[BaseNNEstimator] = None,
         policy_step_size: float = 0.0001,
@@ -27,8 +27,15 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         feature_constructor: Callable = None,
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-        super().__init__("OneStepActorCritic", env)
+        super().__init__(
+            "OneStepActorCritic",
+            env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
         self.discount_factor = discount_factor
@@ -42,7 +49,9 @@ class OneStepActorCritic(BaseLearningAlgorithm):
             else self._determine_observation_shape()
         )
 
-        self.num_actions = self.env.action_space.n if num_actions is None else num_actions
+        self.num_actions = (
+            self.env.action_space.n if num_actions is None else num_actions
+        )
 
         self.policy = (
             policy
@@ -96,7 +105,10 @@ class OneStepActorCritic(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         self.policy = policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only:
             raise Exception("This is a control-only implementation.")
 
@@ -134,7 +146,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
                 self.logger.debug(f"Value grads: {value_grads}")
 
                 policy_grads = torch.autograd.grad(
-                    torch.log(self.policy.get_action_probs(observation, action)),
+                    torch.log(self.policy.get_action_prob(observation, action)),
                     self.policy.parameters(),
                 )
                 self.logger.debug(f"Policy grads: {policy_grads}")

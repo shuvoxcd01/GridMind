@@ -64,7 +64,6 @@ class Selection:
 
     @staticmethod
     def random_selection(population: List[NeuroAgent], num_selection: int = 1):
-
         selected = random.sample(population, num_selection)
 
         return selected

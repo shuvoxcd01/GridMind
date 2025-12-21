@@ -1,12 +1,9 @@
-from gridmind.policies.base_policy import BasePolicy
-from sklearn.base import BaseEstimator
 from torch import nn
-import math
 import torch
 import torch.nn.functional as F
 
 
-class CNNValueEstimator(BaseEstimator):
+class CNNValueEstimator(nn.Module):
     def __init__(
         self,
         observation_shape: tuple,
@@ -55,7 +52,7 @@ class CNNValueEstimator(BaseEstimator):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def get_action_prob(self, state, action):
         action_probs = self.forward(state)
 
         action_probs = F.softmax(action_probs, dim=-1)

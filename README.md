@@ -35,13 +35,13 @@ This library is also designed to serve as a companion for readers of the book *R
    - **Semi-gradient TD-0 Prediction**: *Prediction*
    - **Gradient Monte-Carlo Prediction**: *Prediction*
    - **Episodic Semi-gradient SARSA**: *Control*
-     
+
 
 </td>
 <td style="vertical-align: top;">
 <img src="example_usage/demo.gif" alt="Demo" width="300">
-   
-*Figure: GridMind on different environments.* 
+
+*Figure: GridMind on different environments.*
 </td>
 </tr>
 </table>
@@ -69,7 +69,7 @@ To use GridMind, you’ll need:
     pip install gridmind
     ```
 
-2. **Basic Usage**:  
+2. **Basic Usage**:
     ```python
     from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
     import gymnasium as gym

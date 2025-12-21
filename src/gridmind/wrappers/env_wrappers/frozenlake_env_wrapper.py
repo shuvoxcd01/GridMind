@@ -3,7 +3,7 @@ from typing import Optional
 from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.wrappers.env_wrappers.base_gym_wrapper import BaseGymWrapper
 import gymnasium as gym
-from gym.spaces import Discrete, Box
+from gym.spaces import Box
 import numpy as np
 
 logging.basicConfig(level=logging.INFO)

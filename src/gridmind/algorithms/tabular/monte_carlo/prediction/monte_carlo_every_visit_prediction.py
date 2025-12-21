@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.base_policy import BasePolicy
@@ -16,11 +17,20 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     """
 
     def __init__(
-        self, env: Env, policy: BasePolicy, discount_factor: float = 0.9
+        self,
+        env: Env,
+        policy: BasePolicy,
+        discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCEveryVisitPrediction")
+        super().__init__(
+            name="MCEveryVisitPrediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
 
-        self.env = env
         self.policy = policy
         self.V = defaultdict(float)
         self.discount_factor = discount_factor
@@ -28,7 +38,10 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
-    def _train(self, num_episodes: int, prediction_only: bool):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 

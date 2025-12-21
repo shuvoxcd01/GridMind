@@ -1,10 +1,16 @@
-from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import OneStepActorCritic
+from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_critic import (
+    OneStepActorCritic,
+)
 
 
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
 from gridmind.feature_construction.tile_coding import TileCoding
-from gridmind.policies.parameterized.discrete_action_mlp_policy import DiscreteActionMLPPolicy
-from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import NNValueEstimatorMultilayer
+from gridmind.policies.parameterized.discrete_action_mlp_policy import (
+    DiscreteActionMLPPolicy,
+)
+from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multilayer import (
+    NNValueEstimatorMultilayer,
+)
 import gymnasium as gym
 import torch
 
@@ -21,8 +27,16 @@ features = feature_constructor(observation)
 
 shape = features.shape
 
-policy = DiscreteActionMLPPolicy(observation_shape=shape, num_actions=env.action_space.n, num_hidden_layers=2, in_features=512, out_features=512)
-value_estimator = NNValueEstimatorMultilayer(observation_shape=shape, num_hidden_layers=2, in_features=512, out_features=512)
+policy = DiscreteActionMLPPolicy(
+    observation_shape=shape,
+    num_actions=env.action_space.n,
+    num_hidden_layers=2,
+    in_features=512,
+    out_features=512,
+)
+value_estimator = NNValueEstimatorMultilayer(
+    observation_shape=shape, num_hidden_layers=2, in_features=512, out_features=512
+)
 
 agent = OneStepActorCritic(
     env=env,

@@ -1,6 +1,5 @@
 import logging
 from typing import Callable, Optional
-from gridmind.policies.base_policy import BasePolicy
 from gridmind.utils.performance_evaluation.base_performance_evaluator import (
     BasePerformanceEvaluator,
 )
@@ -51,7 +50,7 @@ class BasicPerformanceEvaluator(BasePerformanceEvaluator):
                 observation = self.preprocessor_fn(observation)
                 action = policy.get_action(observation)
                 observation, reward, terminated, truncated, _ = self.env.step(action)
-                episode_return += reward
+                episode_return += float(reward)
                 episode_length += 1
 
                 done = terminated or truncated

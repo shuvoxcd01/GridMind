@@ -1,4 +1,3 @@
-import copy
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
@@ -25,8 +24,15 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         epsilon_decay: bool = True,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-        super().__init__("Episodic-Semi-Gradient-SARSA", env=env)
+        super().__init__(
+            "Episodic-Semi-Gradient-SARSA",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.discount_factor = discount_factor
 
@@ -101,7 +107,10 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         self.policy = policy
         self.action_value_estimator = policy.get_network()
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only:
             raise Exception("This is a control-only implementation.")
 

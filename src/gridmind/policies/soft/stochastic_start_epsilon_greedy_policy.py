@@ -2,7 +2,7 @@ from collections import defaultdict
 import random
 from typing import Optional
 from gymnasium.spaces.space import Space
-
+import numpy as np
 from gridmind.policies.soft.base_soft_policy import BaseSoftPolicy
 
 
@@ -45,11 +45,22 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
         if random.random() <= self.epsilon:
             action = self._get_random_action()
         else:
+            state = self.convert_to_scalar(state)
             action = self._get_greedy_action(state)
 
         return action
 
+    def get_actions(self, states):
+        actions = []
+        for state in states:
+            state = self.convert_to_scalar(state)
+            action = self.get_action(state)
+            actions.append(action)
+        return actions
+
     def _get_greedy_action(self, state):
+        state = self.convert_to_scalar(state)
+
         action = self.policy_dict[state]
         assert (
             action in self.action_space if self.action_space is not None else True
@@ -57,7 +68,17 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
 
         return action
 
-    def get_action_probs(self, state, action):
+    def convert_to_scalar(self, state):
+        if isinstance(state, np.ndarray):
+            # Assert that state has only one dimension and one element
+            assert (
+                state.ndim == 1 and state.shape[0] == 1
+            ), "State must be a 1D array with one element."
+            # Convert numpy array to scalar
+            state = state.item()
+        return state
+
+    def get_action_prob(self, state, action):
         greedy_action = self._get_greedy_action(state)
 
         each_random_action_prob = self.epsilon / self.num_actions
@@ -69,13 +90,42 @@ class StochasticStartEpsilonGreedyPolicy(BaseSoftPolicy):
 
         return action_probs
 
+    def get_all_action_probabilities(self, states):
+        action_probs_list = []
+        for state in states:
+            action_probs = []
+            greedy_action = self._get_greedy_action(state)
+
+            each_random_action_prob = self.epsilon / self.num_actions
+            greedy_action_prob = 1.0 - self.epsilon + each_random_action_prob
+
+            for action in range(self.num_actions):
+                prob = (
+                    greedy_action_prob
+                    if action == greedy_action
+                    else each_random_action_prob
+                )
+                action_probs.append(prob)
+
+            action_probs_list.append(action_probs)
+
+        action_probs_arr = np.array(action_probs_list).squeeze()
+
+        return action_probs_arr
+
     def update(self, state, action):
         assert (
             action in self.action_space if self.action_space is not None else True
         ), "Action not in action space!!"
-
+        state = self.convert_to_scalar(state)
         self.policy_dict[state] = action
 
     def get_action_deterministic(self, state):
         action = self._get_greedy_action(state=state)
         return action
+
+    def set_policy_dict(self, policy_dict):
+        self.policy_dict = policy_dict
+
+    def get_policy_dict(self):
+        return self.policy_dict

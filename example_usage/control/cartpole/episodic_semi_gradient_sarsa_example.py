@@ -1,9 +1,14 @@
-
-from gridmind.algorithms.function_approximation.temporal_difference.control.episodic_semi_gradient_sarsa import EpisodicSemiGradientSARSA
+from gridmind.algorithms.function_approximation.temporal_difference.control.episodic_semi_gradient_sarsa import (
+    EpisodicSemiGradientSARSA,
+)
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
 from gridmind.feature_construction.tile_coding import TileCoding
-from gridmind.utils.divergence.avg_return_based_divergence_detector import AvgReturnBasedDivergenceDetector
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import BasicPerformanceEvaluator
+from gridmind.utils.divergence.avg_return_based_divergence_detector import (
+    AvgReturnBasedDivergenceDetector,
+)
+from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
+    BasicPerformanceEvaluator,
+)
 import gymnasium as gym
 import torch
 
@@ -19,7 +24,6 @@ tile_encoder = TileCoding(ihtORsize=num_tilings**4, numtilings=num_tilings)
 feature_constructor = lambda x: multi_hot_encoder(tile_encoder(x))
 
 
-
 agent = EpisodicSemiGradientSARSA(
     env=env,
     step_size=0.01,
@@ -30,8 +34,17 @@ agent = EpisodicSemiGradientSARSA(
 
 eval_env = gym.make("CartPole-v1")
 
-performance_evaluator = BasicPerformanceEvaluator(env=eval_env, policy_retriever_fn=agent._get_policy, preprocessor_fn=agent._preprocess)
-divergence_detector = AvgReturnBasedDivergenceDetector(performance_evaluator=performance_evaluator, stop_on_divergence=True, skip_steps=4, skip_below_return=100)
+performance_evaluator = BasicPerformanceEvaluator(
+    env=eval_env,
+    policy_retriever_fn=agent._get_policy,
+    preprocessor_fn=agent._preprocess,
+)
+divergence_detector = AvgReturnBasedDivergenceDetector(
+    performance_evaluator=performance_evaluator,
+    stop_on_divergence=True,
+    skip_steps=4,
+    skip_below_return=100,
+)
 
 agent.register_divergence_detector(detector=divergence_detector)
 

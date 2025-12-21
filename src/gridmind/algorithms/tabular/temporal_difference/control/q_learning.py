@@ -1,7 +1,6 @@
 from collections import defaultdict
 from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
-from gridmind.policies.base_policy import BasePolicy
 
 from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
     BaseQDerivedSoftPolicy,
@@ -23,10 +22,16 @@ class QLearning(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
+        epsilon: float = 0.1,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("Q-Learning", env=env)
+        super().__init__(
+            "Q-Learning", env=env, summary_dir=summary_dir, write_summary=write_summary
+        )
         self.num_actions = self.env.action_space.n
         self.epsilon_decay = epsilon_decay
+        self.epsilon = epsilon
 
         q_initializer = q_initializer.lower()
         assert q_initializer in [
@@ -46,6 +51,8 @@ class QLearning(BaseLearningAlgorithm):
                 q_table=self.q_values, num_actions=self.num_actions
             )
         )
+        self.policy.set_epsilon(self.epsilon)
+
         self.step_size = step_size
         self.discount_factor = discount_factor
 
@@ -63,7 +70,10 @@ class QLearning(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only:
             raise Exception("This is a control-only implementation.")
 
@@ -72,7 +82,9 @@ class QLearning(BaseLearningAlgorithm):
             done = False
 
             while not done:
-                action = self.policy.get_action(obs)
+                action_mask = info.get("action_mask", None)
+                action = self.policy.get_action(obs, action_mask=action_mask)
+
                 next_obs, reward, terminated, truncated, _ = self.env.step(action)
 
                 self.q_values[obs][action] = self.q_values[obs][
@@ -93,4 +105,3 @@ class QLearning(BaseLearningAlgorithm):
 
     def set_policy(self, policy: BaseQDerivedSoftPolicy):
         self.policy = policy
-

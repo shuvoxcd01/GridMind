@@ -35,8 +35,15 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
         target_policy: Optional[BasePolicy] = None,
         behavior_policy: Optional[BasePolicy] = None,
         discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="MCPolicyControl(off-policy)", env=env)
+        super().__init__(
+            name="MCPolicyControl(off-policy)",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.num_actions = self.env.action_space.n
         self.actions = list(range(self.num_actions))
 
@@ -59,7 +66,10 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.target_policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         trajectory = Trajectory()
 
         for _ in tqdm(range(num_episodes)):
@@ -82,10 +92,10 @@ class MonteCarloOffPolicy(BaseLearningAlgorithm):
                     greedy_action = np.argmax(self.q_values[state])
                     self.target_policy.update(state=state, action=greedy_action)
 
-                target_policy_action_prob = self.target_policy.get_action_probs(
+                target_policy_action_prob = self.target_policy.get_action_prob(
                     state=state, action=action
                 )
-                behavior_policy_action_prob = self.behavior_policy.get_action_probs(
+                behavior_policy_action_prob = self.behavior_policy.get_action_prob(
                     state=state, action=action
                 )
 

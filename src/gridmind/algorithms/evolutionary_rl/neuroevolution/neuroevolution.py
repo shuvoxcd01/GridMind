@@ -1,10 +1,7 @@
 from copy import deepcopy
-import logging
 import multiprocessing
 import numbers
-import os
 import random
-import time
 from typing import Callable, List, Optional
 
 
@@ -16,18 +13,15 @@ from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
 )
 from gridmind.utils.evo_util.selection import Selection
-from torch.utils.tensorboard import SummaryWriter
-
+from gridmind.algorithms.evolutionary_rl.base_evo_rl_algorithm import BaseEvoRLAlgorithm
 from gymnasium import Env
 import torch
 from tqdm import trange
 import numpy as np
 import gymnasium as gym
 
-from data import SAVE_DATA_DIR
 
-
-class NeuroEvolution:
+class NeuroEvolution(BaseEvoRLAlgorithm):
     def __init__(
         self,
         env: Env,
@@ -36,13 +30,19 @@ class NeuroEvolution:
         _lambda: int = 20,
         mutation_mean: float = 0,
         mutation_std: float = 0.1,
-        feature_constructor: Callable = None,
+        feature_constructor: Optional[Callable] = None,
         num_processes: Optional[int] = None,
         stopping_fitness: Optional[float] = None,
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        super().__init__(
+            name="NeuroEvolution",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
+
         self.env = env
         self.name = "NeuroEvolution"
         self.mu = mu
@@ -64,32 +64,26 @@ class NeuroEvolution:
         )
 
         self.num_actions = self.env.action_space.n
+        self.best_agent = None
 
         self.population = (
             population if population is not None else self.initialize_population()
         )
+        self._generation = 0
 
-        self.write_summary = write_summary
+    @property
+    def generation(self):
+        return self._generation
 
-        if self.write_summary:
-            self._initialize_summary_writer(summary_dir=summary_dir)
+    def get_best(self, unwrapped: bool = True):
+        assert (
+            self.best_agent is not None
+        ), "No best agent found. Train the algorithm first."
 
-    def _initialize_summary_writer(self, summary_dir=None):
-        summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+        if unwrapped:
+            return self.best_agent.network
 
-        log_dir = os.path.join(
-            summary_dir,
-            env_name,
-            "summaries",
-            self.name,
-            f"-mutation_mean_{self.mutation_mean}-mutation_std_{self.mutation_std}-",
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
-        )
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-        self.summary_writer = SummaryWriter(log_dir=log_dir)
+        return self.best_agent
 
     def initialize_population(self):
         population = []
@@ -137,10 +131,10 @@ class NeuroEvolution:
         raise Exception()
 
     def _get_policy(self):
-        return self.policy
+        return self.get_best(unwrapped=True)
 
     def set_policy(self, policy, **kwargs):
-        self.policy = policy
+        raise NotImplementedError()
 
     def mutate(self, network, mean, std):
         chromosome = NeuroEvolutionUtil.get_parameters_vector(network)
@@ -169,10 +163,8 @@ class NeuroEvolution:
 
         return sum_episode_return / average_over_episodes
 
-    def train(self, num_generations: int):
-        best_agent = None
-
-        for generation in trange(num_generations):
+    def train(self, num_generations: int, *args, **kwargs):
+        for num_gen in trange(num_generations):
             agent_to_assess_fitness = []
 
             for agent in self.population:
@@ -187,37 +179,41 @@ class NeuroEvolution:
             for agent, fitness in zip(agent_to_assess_fitness, fitness_scores):
                 agent.fitness = fitness
 
-                if best_agent is None or agent.fitness > best_agent.fitness:
-                    best_agent = agent
+                if self.best_agent is None or agent.fitness > self.best_agent.fitness:
+                    self.best_agent = agent
 
                     if (
                         self.highest_possible_fitness is not None
-                        and best_agent.fitness >= self.highest_possible_fitness
+                        and self.best_agent.fitness >= self.highest_possible_fitness
                     ):
                         self.logger.info(
-                            f"Stopping fitness reached: {best_agent.fitness}"
+                            f"Stopping fitness reached: {self.best_agent.fitness}"
                         )
                         self.summary_writer.add_scalar(
                             "Best_Agent_Fitness",
-                            best_agent.fitness,
-                            global_step=generation,
+                            self.best_agent.fitness,
+                            global_step=self.generation,
                         )
-                        return best_agent
+                        return self.best_agent
 
             average_fitness = sum([agent.fitness for agent in self.population]) / len(
                 self.population
             )
             self.logger.info(
-                f"Generation: {generation}, Average Fitness: {average_fitness}"
+                f"Generation: {self.generation}, Average Fitness: {average_fitness}"
             )
             self.summary_writer.add_scalar(
-                "Population_Average_Fitness", average_fitness, global_step=generation
+                "Population_Average_Fitness",
+                average_fitness,
+                global_step=self.generation,
             )
 
-            if best_agent is not None:
-                self.logger.info(f"Best Agent Fitness: {best_agent.fitness}")
+            if self.best_agent is not None:
+                self.logger.info(f"Best Agent Fitness: {self.best_agent.fitness}")
                 self.summary_writer.add_scalar(
-                    "Best_Agent_Fitness", best_agent.fitness, global_step=generation
+                    "Best_Agent_Fitness",
+                    self.best_agent.fitness,
+                    global_step=self.generation,
                 )
 
             # Select parents
@@ -241,7 +237,8 @@ class NeuroEvolution:
                     )
                     self.population.append(child)
 
-        return best_agent
+            self._generation += 1
+        return self.best_agent
 
 
 if __name__ == "__main__":

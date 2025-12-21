@@ -29,8 +29,15 @@ class PPO(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
         entropy_coefficient: float = 0.02,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-        super().__init__("ProximalPolicyOptimization", env)
+        super().__init__(
+            "ProximalPolicyOptimization",
+            env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.policy_step_size = policy_step_size
         self.value_step_size = value_step_size
         self.discount_factor = discount_factor
@@ -48,7 +55,7 @@ class PPO(BaseLearningAlgorithm):
             policy
             if policy is not None
             else ActorCriticPolicy(
-                env=self.env
+                observation_shape=observation_shape, num_actions=num_actions
             )
         )
         self.T = 500
@@ -95,7 +102,10 @@ class PPO(BaseLearningAlgorithm):
         for i in range(0, len(data), batch_size):
             yield data[i : i + batch_size]
 
-    def _train(self, num_episodes, prediction_only):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes, prediction_only):
         assert not prediction_only, "Prediction only is not supported for PPO"
 
         num_collect_episodes = 5
@@ -215,4 +225,4 @@ if __name__ == "__main__":
     algorithm = PPO(env=env, num_actions=env.action_space.n, policy=policy)
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=1000, prediction_only=False)
+    algorithm.train_episodes(num_episodes=1000, prediction_only=False)

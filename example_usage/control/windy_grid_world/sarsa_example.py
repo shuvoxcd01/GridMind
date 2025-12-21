@@ -6,7 +6,7 @@ env = gym.make("rl_worlds/WindyGridWorld-v0")
 
 agent = SARSA(env=env)
 
-agent.train(num_episodes=10000)
+agent.train_episodes(num_episodes=10000)
 
 policy = agent.get_policy()
 

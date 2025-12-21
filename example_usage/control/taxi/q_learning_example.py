@@ -1,10 +1,9 @@
-
 from gridmind.algorithms.tabular.temporal_difference.control.q_learning import QLearning
 from gridmind.utils.vis_util import print_state_action_values
 import gymnasium as gym
 
 env = gym.make("Taxi-v3")
-agent = QLearning(env=env, step_size=0.01, q_initializer='random')
+agent = QLearning(env=env, step_size=0.01, q_initializer="random")
 
 agent.optimize_policy(num_episodes=100000)
 

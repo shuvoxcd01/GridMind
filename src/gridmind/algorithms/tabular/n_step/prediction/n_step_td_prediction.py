@@ -1,5 +1,6 @@
 from collections import defaultdict
 import itertools
+from typing import Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
 
 from gridmind.policies.base_policy import BasePolicy
@@ -17,11 +18,17 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         n: int,
         step_size: float = 0.01,
         discount_factor: float = 0.9,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("N-Step-TD-Prediction")
+        super().__init__(
+            "N-Step-TD-Prediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.V = defaultdict(int)
-        self.env = env
         self.policy = policy
         self.discount_factor = discount_factor
         self.n = n
@@ -41,7 +48,10 @@ class NStepTDPrediction(BaseLearningAlgorithm):
     def set_policy(self, policy: BasePolicy, **kwargs):
         raise NotImplementedError()
 
-    def _train(self, num_episodes: int, prediction_only: bool = True):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 

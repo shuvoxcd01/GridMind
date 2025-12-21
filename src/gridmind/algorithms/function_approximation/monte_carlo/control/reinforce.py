@@ -23,9 +23,12 @@ class Reinforce(BaseLearningAlgorithm):
         discount_factor: float = 0.99,
         feature_constructor=None,
         grad_clip_value: float = 1.0,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ):
-
-        super().__init__("Reinforce", env)
+        super().__init__(
+            "Reinforce", env, summary_dir=summary_dir, write_summary=write_summary
+        )
         self.policy = policy
         self.step_size = step_size
         self.discount_factor = discount_factor
@@ -82,7 +85,10 @@ class Reinforce(BaseLearningAlgorithm):
     def set_policy(self, policy, **kwargs):
         raise NotImplementedError
 
-    def _train(self, num_episodes, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes, prediction_only: bool = False):
         if prediction_only:
             raise NotImplementedError("Prediction only is not supported for Reinforce")
 
@@ -102,7 +108,7 @@ class Reinforce(BaseLearningAlgorithm):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
 
-                log_prob = torch.log(self.policy.get_action_probs(obs, action))
+                log_prob = torch.log(self.policy.get_action_prob(obs, action))
 
                 policy_grads = torch.autograd.grad(
                     log_prob,
@@ -132,7 +138,6 @@ class Reinforce(BaseLearningAlgorithm):
 
 if __name__ == "__main__":
     import gymnasium as gym
-    from gymnasium.wrappers import NormalizeReward
 
     env = gym.make("CartPole-v1")
 
@@ -145,4 +150,4 @@ if __name__ == "__main__":
     algorithm = Reinforce(env=env, step_size=0.0001)
     algorithm.register_performance_evaluator(performance_evaluator)
 
-    algorithm.train(num_episodes=10000, prediction_only=False)
+    algorithm.train_episodes(num_episodes=10000, prediction_only=False)

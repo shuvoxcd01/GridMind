@@ -1,5 +1,9 @@
-from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
-from gridmind.algorithms.function_approximation.temporal_difference.prediction.semi_gradient_td_0_prediction import SemiGradientTD0Prediction
+from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import (
+    GradientMonteCarloPrediction,
+)
+from gridmind.algorithms.function_approximation.temporal_difference.prediction.semi_gradient_td_0_prediction import (
+    SemiGradientTD0Prediction,
+)
 from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
     MonteCarloEveryVisitPrediction,
 )
@@ -54,7 +58,9 @@ semi_gradient_td = SemiGradientTD0Prediction(
     feature_constructor=aggregator,
 )
 semi_gradient_td.evaluate_policy(num_episodes=10000)
-semi_gradient_td_V = semi_gradient_td.get_state_value_fn(force_functional_interface=False)
+semi_gradient_td_V = semi_gradient_td.get_state_value_fn(
+    force_functional_interface=False
+)
 
 all_states = list(range(1000))
 true_values = [V[s] for s in all_states]

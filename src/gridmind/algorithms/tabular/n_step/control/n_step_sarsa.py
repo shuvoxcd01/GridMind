@@ -26,8 +26,15 @@ class NStepSARSA(BaseLearningAlgorithm):
         discount_factor: float = 0.9,
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__("N-Step-SARSA", env=env)
+        super().__init__(
+            "N-Step-SARSA",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.n = n
         self.num_actions = self.env.action_space.n
 
@@ -68,7 +75,10 @@ class NStepSARSA(BaseLearningAlgorithm):
     def set_policy(self, policy: BasePolicy, **kwargs):
         self.policy = policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = False):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = False):
         if prediction_only == True:
             raise Exception("This is a control only implementation.")
 

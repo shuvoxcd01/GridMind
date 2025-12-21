@@ -2,16 +2,14 @@ from abc import ABC, abstractmethod
 import copy
 import os
 import time
-from typing import Optional
+from typing import Callable, Optional
 import dill
 from gridmind.policies.base_policy import BasePolicy
 import logging
 from gridmind.utils.divergence.base_divergence_detector import BaseDivergenceDetector
+from gridmind.utils.logtools.async_tensorboard_logger import AsyncTensorboardLogger
 from gridmind.utils.performance_evaluation.base_performance_evaluator import (
     BasePerformanceEvaluator,
-)
-from gridmind.utils.performance_evaluation.basic_performance_evaluator import (
-    BasicPerformanceEvaluator,
 )
 from gridmind.wrappers.policy_wrappers.preprocessed_observation_policy_wrapper import (
     PreprocessedObservationPolicyWrapper,
@@ -36,13 +34,19 @@ class BaseLearningAlgorithm(ABC):
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
+
         self.env = env
+
+        if self.env is not None:
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+        else:
+            env_name = "unknown"
+
         self.epoch_eval_interval = None
 
         self.perform_evaluation = False
         self.monitor_divergence = False
         self.stop_on_divergence = False
-        env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
         self.write_summary = write_summary
         if self.write_summary:
@@ -52,7 +56,13 @@ class BaseLearningAlgorithm(ABC):
 
             self._initialize_summary_writer(summary_dir, env_name)
 
-    def _initialize_summary_writer(self, summary_dir, env_name):
+    def _initialize_summary_writer(
+        self,
+        summary_dir,
+        env_name,
+        extra_info: str = "",
+        use_async_writer: bool = False,
+    ):
         summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
 
         log_dir = os.path.join(
@@ -60,12 +70,16 @@ class BaseLearningAlgorithm(ABC):
             env_name,
             "summaries",
             self.name,
-            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S"),
+            "run_" + time.strftime("%Y-%m-%d_%H-%M-%S") + extra_info,
         )
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        self.summary_writer = SummaryWriter(log_dir=log_dir)
+        self.summary_writer = (
+            SummaryWriter(log_dir=log_dir)
+            if not use_async_writer
+            else AsyncTensorboardLogger(log_dir=log_dir)
+        )
 
     def register_performance_evaluator(self, evaluator: BasePerformanceEvaluator):
         self.performance_evaluator = evaluator
@@ -117,7 +131,6 @@ class BaseLearningAlgorithm(ABC):
     def get_state_value_fn(
         self, force_functional_interface: bool = True, autopreprocess: bool = False
     ):
-
         if not autopreprocess:
             return self._get_state_value_fn(
                 force_functional_interface=force_functional_interface
@@ -158,7 +171,9 @@ class BaseLearningAlgorithm(ABC):
         raise NotImplementedError("This method must be overridden")
 
     @abstractmethod
-    def _train(self, num_episodes: int, prediction_only: bool):
+    def _train_episodes(
+        self, num_episodes: int, prediction_only: bool, *args, **kwargs
+    ):
         raise NotImplementedError("This method must be overridden")
 
     def get_policy_cloned(self):
@@ -167,21 +182,93 @@ class BaseLearningAlgorithm(ABC):
 
         return cloned_policy
 
-    def train(self, num_episodes: int, prediction_only: bool, save_policy: bool = True):
+    def train(
+        self,
+        num_episodes: Optional[int] = None,
+        num_steps: Optional[int] = None,
+        prediction_only: bool = False,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
+        if num_episodes is not None and num_steps is not None:
+            raise ValueError(
+                "Please specify either num_episodes or num_steps, not both."
+            )
+
+        if num_episodes is not None:
+            return self.train_episodes(
+                num_episodes, prediction_only, save_policy, *args, **kwargs
+            )
+
+        if num_steps is not None:
+            return self.train_steps(
+                num_steps, prediction_only, save_policy, *args, **kwargs
+            )
+
+        raise ValueError("Please specify either num_episodes or num_steps.")
+
+    def train_steps(
+        self,
+        num_steps: int,
+        prediction_only: bool,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
+        return self._training_wrapper(
+            num_steps,
+            prediction_only,
+            save_policy,
+            training_fn=self._train_steps,
+            *args,
+            **kwargs,
+        )
+
+    @abstractmethod
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError("This method must be overridden")
+
+    def train_episodes(
+        self,
+        num_episodes: int,
+        prediction_only: bool,
+        save_policy: bool = True,
+        *args,
+        **kwargs,
+    ):
+        return self._training_wrapper(
+            num_episodes,
+            prediction_only,
+            save_policy,
+            training_fn=self._train_episodes,
+            *args,
+            **kwargs,
+        )
+
+    def _training_wrapper(
+        self,
+        num_iter: int,
+        prediction_only: bool,
+        save_policy: bool,
+        training_fn: Callable,
+        *args,
+        **kwargs,
+    ):
         num_outer_iter = 1
-        num_inner_iter = num_episodes
+        num_inner_iter = num_iter
 
         if self.perform_evaluation or self.monitor_divergence:
             if self.epoch_eval_interval is None:
-                self.epoch_eval_interval = num_episodes // 10
-            num_outer_iter = num_episodes // self.epoch_eval_interval
+                self.epoch_eval_interval = num_iter // 10
+            num_outer_iter = num_iter // self.epoch_eval_interval
             num_inner_iter = self.epoch_eval_interval
 
         for epoch in trange(num_outer_iter):
             if self.stop_on_divergence:
                 policy_prev = self.get_policy_cloned()
 
-            self._train(num_inner_iter, prediction_only)
+            training_fn(num_inner_iter, prediction_only, *args, **kwargs)
 
             if self.perform_evaluation:
                 performance_evaluation = (
@@ -200,7 +287,10 @@ class BaseLearningAlgorithm(ABC):
                     self.logger.warning("Stopping training due to divergence.")
                     self.set_policy(policy_prev)
                     break
-        
+
+        if save_policy:
+            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
+
         if save_policy:
             env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
@@ -229,10 +319,10 @@ class BaseLearningAlgorithm(ABC):
             self.save_policy(saved_policy_dir)
 
     def evaluate_policy(self, num_episodes: int):
-        return self._train(num_episodes, prediction_only=True)
+        return self._train_episodes(num_episodes, prediction_only=True)
 
     def optimize_policy(self, num_episodes: int):
-        return self.train(num_episodes, prediction_only=False)
+        return self.train_episodes(num_episodes, prediction_only=False)
 
     def save_policy(self, path: str):
         policy = self._get_policy()

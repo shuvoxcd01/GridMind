@@ -17,20 +17,42 @@ class SimpleReplayBuffer:
         """Extend the buffer with another buffer."""
         self.buffer.extend(replay_buffer.buffer)
 
-    def sample(self, batch_size: int = 1):
+    def sample(
+        self,
+        batch_size: int = 1,
+        sequential: bool = False,
+    ):
         """Sample a batch of experiences."""
         if batch_size > self.size():
             raise ValueError("Batch size is greater than buffer size.")
 
-        batch = random.sample(self.buffer, batch_size)
+        if sequential:
+            start_idx = random.randint(0, self.size() - batch_size)
+            batch = [self.buffer[i] for i in range(start_idx, start_idx + batch_size)]
+        else:
+            batch = random.sample(self.buffer, batch_size)
+
         states, actions, rewards, next_states, terminated, truncated = zip(*batch)
+
+        states_arr = np.array(states)
+        actions_arr = np.array(actions)
+        rewards_arr = np.array(rewards)
+        next_states_arr = np.array(next_states)
+        terminated_arr = np.array(terminated)
+        truncated_arr = np.array(truncated)
+
+        if states_arr.ndim == 1:
+            states_arr = states_arr.reshape(-1, 1)
+        if next_states_arr.ndim == 1:
+            next_states_arr = next_states_arr.reshape(-1, 1)
+
         return (
-            np.array(states),
-            np.array(actions),
-            np.array(rewards),
-            np.array(next_states),
-            np.array(terminated),
-            np.array(truncated),
+            states_arr,
+            actions_arr,
+            rewards_arr,
+            next_states_arr,
+            terminated_arr,
+            truncated_arr,
         )
 
     def size(self):
@@ -41,6 +63,16 @@ class SimpleReplayBuffer:
         """Clear the buffer."""
         self.buffer.clear()
 
+    def __len__(self):
+        """Return the current buffer size."""
+        return self.size()
+
+    def pop(self, num_elements: int = 1):
+        """Pop elements from the buffer."""
+        if num_elements > self.size():
+            raise ValueError("Number of elements to pop is greater than buffer size.")
+        return [self.buffer.popleft() for _ in range(num_elements)]
+
 
 if __name__ == "__main__":
     buffer = SimpleReplayBuffer(None)
@@ -49,5 +81,7 @@ if __name__ == "__main__":
     batch = buffer.sample(2)
     print(batch)
     print(buffer.size())
+    batch_2 = buffer.sample(2, sequential=True)
+    print(batch_2)
     buffer.clear()
     print(buffer.size())

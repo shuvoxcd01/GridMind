@@ -1,4 +1,3 @@
-from collections import defaultdict
 import numbers
 from typing import Callable, Optional
 from gridmind.algorithms.base_learning_algorithm import BaseLearningAlgorithm
@@ -10,7 +9,6 @@ from tqdm import trange
 
 
 class SemiGradientTD0Prediction(BaseLearningAlgorithm):
-
     def __init__(
         self,
         env: gym.Env,
@@ -19,8 +17,15 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
         step_size: float = 0.1,
         discount_factor: float = 0.9,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = True,
     ) -> None:
-        super().__init__(name="Semi-gradient-TD-0-Prediction")
+        super().__init__(
+            name="Semi-gradient-TD-0-Prediction",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
+        )
         self.step_size = step_size
         self.env = env
         self.policy = policy
@@ -60,7 +65,10 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
     def _get_policy(self):
         return self.policy
 
-    def _train(self, num_episodes: int, prediction_only: bool = True):
+    def _train_steps(self, num_steps: int, prediction_only: bool, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _train_episodes(self, num_episodes: int, prediction_only: bool = True):
         if prediction_only == False:
             raise Exception("This is a prediction/evaluation only implementation.")
 
