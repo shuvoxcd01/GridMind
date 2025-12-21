@@ -1,9 +1,18 @@
-
-from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import GradientMonteCarloPrediction
-from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import MonteCarloEveryVisitPrediction
-from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import MonteCarloEveryVisitPredictionIncremental
-from gridmind.algorithms.tabular.n_step.prediction.n_step_td_prediction import NStepTDPrediction
-from gridmind.algorithms.tabular.temporal_difference.prediction.td_0_prediction import TD0Prediction
+from gridmind.algorithms.function_approximation.monte_carlo.prediction.gradient_monte_carlo_prediction import (
+    GradientMonteCarloPrediction,
+)
+from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction import (
+    MonteCarloEveryVisitPrediction,
+)
+from gridmind.algorithms.tabular.monte_carlo.prediction.monte_carlo_every_visit_prediction_incremental import (
+    MonteCarloEveryVisitPredictionIncremental,
+)
+from gridmind.algorithms.tabular.n_step.prediction.n_step_td_prediction import (
+    NStepTDPrediction,
+)
+from gridmind.algorithms.tabular.temporal_difference.prediction.td_0_prediction import (
+    TD0Prediction,
+)
 from gridmind.feature_construction.one_hot import OneHotEncoder
 from gridmind.policies.random_policy import RandomPolicy
 import gymnasium as gym
@@ -30,12 +39,16 @@ algorithm.evaluate_policy(num_episodes=5000)
 V = algorithm.get_state_value_fn()
 
 
-algorithm2 = NStepTDPrediction(env=env, policy=policy, n=50, discount_factor=1, step_size=0.005)
+algorithm2 = NStepTDPrediction(
+    env=env, policy=policy, n=50, discount_factor=1, step_size=0.005
+)
 
 algorithm2.evaluate_policy(num_episodes=1000)
 V2 = algorithm2._get_state_value_fn(False)
 
-algorithm3 = MonteCarloEveryVisitPredictionIncremental(env, policy, discount_factor=1, step_size=0.005)
+algorithm3 = MonteCarloEveryVisitPredictionIncremental(
+    env, policy, discount_factor=1, step_size=0.005
+)
 algorithm3.evaluate_policy(num_episodes=1000)
 V3 = algorithm3._get_state_value_fn(False)
 
@@ -76,5 +89,3 @@ while not done:
     next_obs, reward, terminated, truncated, info = env.step(action)
     done = terminated or truncated
     obs = next_obs
-
-

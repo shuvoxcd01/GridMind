@@ -11,7 +11,6 @@ import torch
 import logging
 
 
-
 # Create a logger specific to the current file
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Ensure logger captures DEBUG level
@@ -28,7 +27,9 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)  # Ensure handler captures DEBUG level
 
 # Set a formatter for better readability
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(message)s')
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(filename)s - %(message)s"
+)
 handler.setFormatter(formatter)
 
 # Attach handler to the logger
@@ -50,7 +51,7 @@ agent = OneStepActorCritic(
     grad_clip_value=1.0,
 )
 
-eval_env = gym.make("CartPole-v1", render_mode = "rgb_array")
+eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
 
 performance_evaluator = BasicPerformanceEvaluator(
     env=eval_env,
@@ -106,5 +107,3 @@ for step in range(1000):
 env.close()
 
 print_value_table(feature_1, feature_2, state_value, filename="Carpole_value_table.txt")
-
-
