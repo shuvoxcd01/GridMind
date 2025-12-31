@@ -207,3 +207,4 @@ CITATION.cff
 CLAUDE.md
 .claude/*
 .reports/*
+.mcp.json
