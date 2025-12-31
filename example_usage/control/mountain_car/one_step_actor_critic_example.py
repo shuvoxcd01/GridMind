@@ -23,7 +23,7 @@ env = gym.make("MountainCar-v0")
 num_tilings = 7
 normalizer = MinMaxNormalizer(
     low=np.array([-1.2, -0.07]),  # Mountain Car observation bounds
-    high=np.array([0.6, 0.07])
+    high=np.array([0.6, 0.07]),
 )
 multi_hot_encoder = MultiHotEncoder(num_categories=num_tilings**4)
 tile_encoder = TileCoding(ihtORsize=num_tilings**4, numtilings=num_tilings)
