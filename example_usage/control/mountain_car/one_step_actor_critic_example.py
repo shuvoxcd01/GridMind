@@ -4,6 +4,7 @@ from gridmind.algorithms.function_approximation.actor_critic.one_step_actor_crit
 
 
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
+from gridmind.feature_construction.normalizer import MinMaxNormalizer
 from gridmind.feature_construction.tile_coding import TileCoding
 from gridmind.policies.parameterized.discrete_action_mlp_policy import (
     DiscreteActionMLPPolicy,
@@ -13,13 +14,20 @@ from gridmind.value_estimators.state_value_estimators.nn_value_estimator_multila
 )
 import gymnasium as gym
 import torch
+import numpy as np
 
 
 env = gym.make("MountainCar-v0")
+
+# Feature construction pipeline: normalize -> tile coding -> multi-hot encoding
 num_tilings = 7
+normalizer = MinMaxNormalizer(
+    low=np.array([-1.2, -0.07]),  # Mountain Car observation bounds
+    high=np.array([0.6, 0.07])
+)
 multi_hot_encoder = MultiHotEncoder(num_categories=num_tilings**4)
 tile_encoder = TileCoding(ihtORsize=num_tilings**4, numtilings=num_tilings)
-feature_constructor = lambda x: multi_hot_encoder(tile_encoder(x))
+feature_constructor = lambda x: multi_hot_encoder(tile_encoder(normalizer(x)))
 
 observation, _ = env.reset()
 

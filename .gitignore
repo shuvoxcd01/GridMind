@@ -204,3 +204,6 @@ example_usage/*
 *.pth
 .gitignore
 CITATION.cff
+CLAUDE.md
+.claude/*
+.reports/*
