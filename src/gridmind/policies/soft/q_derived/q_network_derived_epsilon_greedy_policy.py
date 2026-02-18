@@ -1,7 +1,11 @@
+from typing import Optional
+
+import numpy as np
+import torch
+
 from gridmind.policies.soft.q_derived.base_q_derived_soft_policy import (
     BaseQDerivedSoftPolicy,
 )
-import torch
 
 
 class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
@@ -46,9 +50,24 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
             f"{self.__class__.__name__} does not support updating Q values directly."
         )
 
-    def _get_greedy_action(self, state):
+    def _get_greedy_action(self, state, action_mask: Optional[np.ndarray] = None):
         state = state.to(self.device)
-        action = torch.argmax(self.Q(state)).cpu().detach().item()
+        q_values = self.Q(state)
+
+        if action_mask is not None:
+            # Convert numpy mask to torch tensor and move to the same device as q_values
+            action_mask_tensor = torch.tensor(
+                action_mask, dtype=torch.bool, device=self.device
+            )
+            # Mask invalid actions with -inf
+            masked_q_values = torch.where(
+                action_mask_tensor,
+                q_values,
+                torch.tensor(-torch.inf, device=self.device),
+            )
+            action = torch.argmax(masked_q_values).cpu().detach().item()
+        else:
+            action = torch.argmax(q_values).cpu().detach().item()
 
         assert (
             action in self.action_space if self.action_space is not None else True

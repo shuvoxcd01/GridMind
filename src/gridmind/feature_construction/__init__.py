@@ -3,6 +3,7 @@ from gridmind.feature_construction.embedding_feature_extractor import (
     EmbeddingFeatureExtractor,
 )
 from gridmind.feature_construction.multi_hot import MultiHotEncoder
+from gridmind.feature_construction.normalizer import MinMaxNormalizer
 from gridmind.feature_construction.polynomial import PolynomialFeatureConstructor
 from gridmind.feature_construction.state_aggregation import SimpleStateAggregator
 from gridmind.feature_construction.tile_coding import TileCoding
@@ -11,6 +12,7 @@ from gridmind.feature_construction.tile_coding import TileCoding
 __all__ = [
     "OneHotEncoder",
     "EmbeddingFeatureExtractor",
+    "MinMaxNormalizer",
     "MultiHotEncoder",
     "PolynomialFeatureConstructor",
     "SimpleStateAggregator",

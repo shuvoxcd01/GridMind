@@ -43,8 +43,6 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             write_summary=write_summary,
         )
 
-        self.env = env
-        self.name = "NeuroEvolution"
         self.mu = mu
         self._lambda = _lambda
         self.mutation_mean = mutation_mean
@@ -81,7 +79,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         ), "No best agent found. Train the algorithm first."
 
         if unwrapped:
-            return self.best_agent.network
+            return self.best_agent.policy
 
         return self.best_agent
 
@@ -97,7 +95,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             num_actions=self.num_actions,
             num_hidden_layers=2,
         )
-        spawned_individual = NeuroAgent(network=network)
+        spawned_individual = NeuroAgent(policy=network)
 
         return spawned_individual
 
@@ -163,7 +161,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
 
         return sum_episode_return / average_over_episodes
 
-    def train(self, num_generations: int, *args, **kwargs):
+    def _train(self, num_generations: int, *args, **kwargs):
         for num_gen in trange(num_generations):
             agent_to_assess_fitness = []
 
@@ -172,8 +170,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
                     agent_to_assess_fitness.append(agent)
 
             fitness_scores = [
-                self.evaluate_fitness(agent.network)
-                for agent in agent_to_assess_fitness
+                self.evaluate_fitness(agent.policy) for agent in agent_to_assess_fitness
             ]
 
             for agent, fitness in zip(agent_to_assess_fitness, fitness_scores):
@@ -227,13 +224,13 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             for parent in parents:
                 for _ in range(self._lambda // self.mu):
                     mutated_param_vector = self.mutate(
-                        network=parent.network,
+                        network=parent.policy,
                         mean=self.mutation_mean,
                         std=self.mutation_std,
                     )
                     child = self.spawn_individual()
                     NeuroEvolutionUtil.set_parameters_vector(
-                        child.network, mutated_param_vector
+                        child.policy, mutated_param_vector
                     )
                     self.population.append(child)
 
@@ -262,11 +259,13 @@ if __name__ == "__main__":
             mutation_mean=mutation_mean,
             mutation_std=mutation_std,
         )
-        trained_agents.append(algorithm.train(num_generations=1000))
+        algorithm.train(num_generations=10)
+        best_agent = algorithm.get_best(unwrapped=False)
+        trained_agents.append(best_agent)
 
     eval_env = gym.make("CartPole-v1", render_mode="human")
 
-    policy = random.choice(trained_agents).network
+    policy = random.choice(trained_agents).policy
 
     obs, info = eval_env.reset()
     done = False
