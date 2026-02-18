@@ -85,13 +85,15 @@ class QLearning(BaseLearningAlgorithm):
                 action_mask = info.get("action_mask", None)
                 action = self.policy.get_action(obs, action_mask=action_mask)
 
-                next_obs, reward, terminated, truncated, _ = self.env.step(action)
+                next_obs, reward, terminated, truncated, info = self.env.step(action)
 
                 self.q_values[obs][action] = self.q_values[obs][
                     action
                 ] + self.step_size * (
                     reward
-                    + self.discount_factor * np.max(self.q_values[next_obs])
+                    + self.discount_factor
+                    * np.max(self.q_values[next_obs])
+                    * (1 - terminated)
                     - self.q_values[obs][action]
                 )
                 self.policy.update_q(
