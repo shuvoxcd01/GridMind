@@ -93,3 +93,18 @@ class QNetworkDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
 
         if decayed_epsilon >= self.epsilon_min:
             self.set_epsilon(value=decayed_epsilon)
+
+    def get_q_values(self, state, action_mask=None):
+        state = state.to(self.device)
+        q_values = self.Q(state).cpu().detach().numpy()
+
+        if action_mask is not None:
+            masked_q_values = np.where(action_mask, q_values, -np.inf)
+            return masked_q_values
+
+        return q_values
+    
+    def get_q_value(self, state, action, action_mask=None):
+        q_values = self.get_q_values(state, action_mask=action_mask)
+        return q_values[action]
+    
