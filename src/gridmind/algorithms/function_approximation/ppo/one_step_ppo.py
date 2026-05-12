@@ -1,4 +1,3 @@
-import logging
 import numbers
 import random
 from typing import Callable, Optional
@@ -12,23 +11,21 @@ from tqdm import trange
 from gridmind.policies.parameterized.actor_critic_policy import ActorCriticPolicy
 import torch.nn as nn
 
-torch.autograd.set_detect_anomaly(True)
-
-logging.basicConfig(level=logging.DEBUG)
-
 
 class OneStepPPO(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
         policy: Optional[ActorCriticPolicy] = None,
-        policy_step_size: float = 0.001,
-        value_step_size: float = 0.001,
+        step_size: float = 0.001,
         discount_factor: float = 0.99,
         feature_constructor: Callable = None,
         clip_grads: bool = True,
         max_grad_norm: float = 0.5,
         entropy_coefficient: float = 0.02,
+        num_epochs: int = 10,
+        minibatch_size: int = 64,
+        clip_epsilon: float = 0.2,
         summary_dir: Optional[str] = None,
         write_summary: bool = True,
     ):
@@ -38,11 +35,13 @@ class OneStepPPO(BaseLearningAlgorithm):
             summary_dir=summary_dir,
             write_summary=write_summary,
         )
-        self.policy_step_size = policy_step_size
-        self.value_step_size = value_step_size
+        self.step_size = step_size
         self.discount_factor = discount_factor
         self.clip_grads = clip_grads
         self.max_grad_norm = max_grad_norm
+        self.num_epochs = num_epochs
+        self.minibatch_size = minibatch_size
+        self.clip_epsilon = clip_epsilon
 
         self.feature_constructor = feature_constructor
         observation_shape = (
@@ -58,13 +57,9 @@ class OneStepPPO(BaseLearningAlgorithm):
                 observation_shape=observation_shape, num_actions=num_actions
             )
         )
-        self.T = 500
-        self.num_epochs = 10
-        self.minibatch_size = 64
         self.optimizer = torch.optim.Adam(
-            self.policy.parameters(), lr=self.policy_step_size
+            self.policy.parameters(), lr=self.step_size
         )
-        self.epsilon = 0.2
         self.entropy_coefficient = entropy_coefficient
 
     def _determine_observation_shape(self):
@@ -138,7 +133,6 @@ class OneStepPPO(BaseLearningAlgorithm):
                             if not terminated
                             else torch.tensor([0.0])
                         )
-                        # cur_state_value = self.policy.get_value(observation)
 
                         v_targ = reward + self.discount_factor * next_state_value
 
@@ -189,19 +183,19 @@ class OneStepPPO(BaseLearningAlgorithm):
                     ratio = log_ratio.exp().reshape(-1, 1)
 
                     clipped_ratio = torch.clamp(
-                        ratio, 1 - self.epsilon, 1 + self.epsilon
+                        ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon
                     )
 
                     clipped_surrogate_objective = torch.min(
                         ratio * minibatch_deltas, clipped_ratio * minibatch_deltas
                     )
-                    squared_error_loss = 0.5 * (minibatch_v_targs - cur_values) ** 2
+                    value_loss = 0.5 * (minibatch_v_targs - cur_values) ** 2
 
                     entropy_bonus = dist_entropy.reshape(-1, 1)
 
                     total_objective = torch.mean(
                         clipped_surrogate_objective
-                        - 0.5 * squared_error_loss
+                        - value_loss
                         + self.entropy_coefficient * entropy_bonus
                     )
                     total_loss = -total_objective
@@ -225,7 +219,7 @@ if __name__ == "__main__":
         env=eval_env, epoch_eval_interval=100
     )
     policy = ActorCriticPolicy(observation_shape=env.observation_space.shape, num_actions=env.action_space.n)
-    algorithm = PPO(env=env, policy=policy)
+    algorithm = OneStepPPO(env=env, policy=policy)
     algorithm.register_performance_evaluator(performance_evaluator)
 
     algorithm.train_episodes(num_episodes=1000, prediction_only=False)

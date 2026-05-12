@@ -80,7 +80,7 @@ class QTableDerivedEpsilonGreedyPolicy(BaseQDerivedSoftPolicy):
             return masked_q_values
 
         return q_values
-    
+
     def get_q_value(self, state, action, action_mask=None):
         q_values = self.get_q_values(state, action_mask=action_mask)
         return q_values[action]

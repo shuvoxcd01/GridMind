@@ -122,9 +122,10 @@ class MinMaxNormalizer:
                 f"Got low={self.low}, high={self.high}"
             )
 
-        # Precompute scaling factors for efficiency
-        self.scale = (self.target_max - self.target_min) / (
-            self.high - self.low + self.epsilon
+        # Precompute scaling factors for efficiency.
+        # Use epsilon only as a floor to guard against near-zero ranges.
+        self.scale = (self.target_max - self.target_min) / np.maximum(
+            self.high - self.low, self.epsilon
         )
         self.offset = self.target_min - self.low * self.scale
 
