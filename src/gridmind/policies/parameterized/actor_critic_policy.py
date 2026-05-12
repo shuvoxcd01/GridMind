@@ -69,5 +69,10 @@ class ActorCriticPolicy(BaseParameterizedPolicy):
 
         return action_prob
 
+    def get_all_action_probabilities(self, state):
+        logits = self.actor(state)
+        dist = Categorical(logits=logits)
+        return dist.probs
+
     def update(self, state, action):
         raise NotImplementedError
