@@ -88,3 +88,11 @@ class BaseQDerivedSoftPolicy(BaseSoftPolicy):
     @abstractmethod
     def _get_greedy_action(self, state, action_mask=None):
         raise NotImplementedError()
+
+    @abstractmethod
+    def get_q_value(self, state, action, action_mask=None):
+        raise NotImplementedError()
+    
+    @abstractmethod
+    def get_q_values(self, state, action_mask=None):
+        raise NotImplementedError()
