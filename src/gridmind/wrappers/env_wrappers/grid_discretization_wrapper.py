@@ -255,7 +255,7 @@ class GridDiscretizationWrapper(BaseGymWrapper):
         """
         return self.observation_space
 
-    def get_continuous_observation(self, observation: np.ndarray) -> int:
+    def discretize_observation(self, observation: np.ndarray) -> int:
         """Public method to discretize a continuous observation.
 
         Useful for testing or manual discretization.
@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
     # Manually discretize minimum observation
     min_obs = env.observation_space.low
-    discrete_min = wrapped.get_continuous_observation(min_obs)
+    discrete_min = wrapped.discretize_observation(min_obs)
     print(f"Min continuous obs: {min_obs}")
     print(f"Discretized to state: {discrete_min}")
     print("Expected: 0 (leftmost bins)")
@@ -348,7 +348,7 @@ if __name__ == "__main__":
 
     # Manually discretize maximum observation
     max_obs = env.observation_space.high
-    discrete_max = wrapped.get_continuous_observation(max_obs)
+    discrete_max = wrapped.discretize_observation(max_obs)
     print(f"Max continuous obs: {max_obs}")
     print(f"Discretized to state: {discrete_max}")
     print(f"Expected: {wrapped.total_states - 1} (rightmost bins)")
@@ -363,7 +363,7 @@ if __name__ == "__main__":
 
     # Create out-of-bounds observation
     oob_obs = env.observation_space.high + 10.0
-    discrete_oob = wrapped.get_continuous_observation(oob_obs)
+    discrete_oob = wrapped.discretize_observation(oob_obs)
     print(f"Out-of-bounds obs: {oob_obs}")
     print(f"Discretized to state: {discrete_oob}")
     print(f"Expected: {wrapped.total_states - 1} (clipped to max)")
