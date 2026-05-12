@@ -37,57 +37,30 @@ class SumTree:
         # Tree has capacity leaf nodes and capacity-1 internal nodes
         # Total nodes = 2 * capacity - 1
         self.tree = np.zeros(2 * capacity - 1)
-        # Current write position in the circular buffer
-        self.write_index = 0
         # Current number of stored experiences
         self.n_entries = 0
 
     def _propagate(self, idx: int, change: float):
-        """
-        Propagate priority change up the tree.
-
-        When a leaf priority changes, we need to update all ancestor nodes
-        by adding the difference to maintain the sum property.
-
-        Args:
-            idx: Index of the changed leaf node
-            change: Change in priority value
-        """
-        parent = (idx - 1) // 2
-
-        self.tree[parent] += change
-
-        # Continue propagating up the tree until root
-        if parent != 0:
-            self._propagate(parent, change)
+        """Propagate priority change up the tree iteratively."""
+        while idx != 0:
+            idx = (idx - 1) // 2
+            self.tree[idx] += change
 
     def _retrieve(self, idx: int, s: float) -> int:
         """
         Retrieve the leaf index corresponding to a priority value.
 
-        This performs a binary search down the tree to find the leaf
-        whose cumulative priority range contains the value s.
-
-        Args:
-            idx: Current node index (start with root)
-            s: Target cumulative priority value
-
-        Returns:
-            Leaf index corresponding to the priority value
+        Performs an iterative binary search down the tree.
         """
-        left = 2 * idx + 1
-        right = left + 1
-
-        # If we're at a leaf node, return its index
-        if left >= len(self.tree):
-            return idx
-
-        # Go left if s is in the left subtree's range
-        if s <= self.tree[left]:
-            return self._retrieve(left, s)
-        # Otherwise go right (subtract left subtree's sum from s)
-        else:
-            return self._retrieve(right, s - self.tree[left])
+        while True:
+            left = 2 * idx + 1
+            if left >= len(self.tree):
+                return idx
+            if s <= self.tree[left]:
+                idx = left
+            else:
+                s -= self.tree[left]
+                idx = left + 1
 
     def total(self) -> float:
         """Return the total sum of all priorities (root node value)."""
@@ -186,6 +159,10 @@ class PrioritizedReplayBuffer(SimpleReplayBuffer):
             raise ValueError("Capacity must be specified for PrioritizedReplayBuffer")
 
         super().__init__(capacity=capacity)
+        # Replace deque with a fixed-size list so data_idx stays stable
+        self.buffer = [None] * capacity
+        self._write_idx = 0
+        self._size = 0
         self.tree = SumTree(capacity)
         self.alpha = alpha
         self.beta = beta_start
@@ -232,30 +209,19 @@ class PrioritizedReplayBuffer(SimpleReplayBuffer):
             truncated: Whether episode was truncated
             td_error: TD-error for priority calculation (if None, uses max_priority)
         """
-        # Get the index where this will be stored
-        data_idx = (
-            len(self.buffer)
-            if len(self.buffer) < self.capacity
-            else self.tree.write_index
-        )
+        data_idx = self._write_idx
 
-        # Use max priority for new experiences if TD-error not provided
-        # This ensures new experiences get sampled at least once
         if td_error is None:
             priority = self.max_priority
         else:
             priority = self._get_priority(td_error)
-            # Update max priority if this is larger
             self.max_priority = max(self.max_priority, priority)
 
-        # Store in parent's buffer
-        super().store(state, action, reward, next_state, terminated, truncated)
+        self.buffer[data_idx] = (state, action, reward, next_state, terminated, truncated)
+        self._write_idx = (self._write_idx + 1) % self.capacity
+        self._size = min(self._size + 1, self.capacity)
 
-        # Add priority to tree
         self.tree.add(priority, data_idx)
-
-        # Update write index for tree
-        self.tree.write_index = (self.tree.write_index + 1) % self.capacity
 
     def sample(
         self,
@@ -391,9 +357,14 @@ class PrioritizedReplayBuffer(SimpleReplayBuffer):
             self.tree.update(idx, priority)
             self.max_priority = max(self.max_priority, priority)
 
+    def size(self):
+        return self._size
+
     def clear(self):
         """Clear the buffer and reset to initial state."""
-        super().clear()
+        self.buffer = [None] * self.capacity
+        self._write_idx = 0
+        self._size = 0
         self.tree = SumTree(self.capacity)
         self.max_priority = 1.0
         self.frame = 1
