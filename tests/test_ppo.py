@@ -6,7 +6,7 @@ import gymnasium as gym
 def test_ppo_no_exceptions():
     env = gym.make("CartPole-v1")
 
-    algorithm = PPO(env=env)
+    algorithm = PPO(env=env, write_summary=False)
 
     try:
         algorithm.train_episodes(

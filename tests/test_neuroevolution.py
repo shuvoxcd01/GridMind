@@ -5,7 +5,7 @@ import gymnasium as gym
 
 def test_sarsa_no_exceptions():
     env = gym.make("CartPole-v1")
-    algorithm = NeuroEvolution(env=env)
+    algorithm = NeuroEvolution(env=env, write_summary=False)
 
     try:
         algorithm.train(num_generations=10)

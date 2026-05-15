@@ -6,7 +6,7 @@ import pytest
 def test_actor_critic_no_exceptions():
     env = gym.make("CartPole-v1")
 
-    algorithm = ActorCritic(env=env)
+    algorithm = ActorCritic(env=env, write_summary=False)
 
     try:
         algorithm.train_episodes(
