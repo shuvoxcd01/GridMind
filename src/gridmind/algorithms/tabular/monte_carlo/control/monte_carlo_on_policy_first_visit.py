@@ -10,7 +10,7 @@ class MonteCarloOnPolicyFirstVisit(BaseLearningAlgorithm):
         env: Env,
         policy: BasePolicy,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             name="MonteCarloOnPolicyFirstVisit",

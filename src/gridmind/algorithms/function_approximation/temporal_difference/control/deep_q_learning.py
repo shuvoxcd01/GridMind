@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from gridmind.algorithms.function_approximation.base_function_approximation_based_learning_algorithm import (
     BaseFunctionApproximationBasedLearingAlgorithm,
 )
+from gridmind.config import get_save_dir
 from gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_policy import (
     QNetworkDerivedEpsilonGreedyPolicy,
 )
@@ -13,11 +14,6 @@ from gymnasium import Env
 import torch
 from tqdm import trange
 from datetime import datetime
-
-try:
-    from data import SAVE_DATA_DIR
-except ImportError:
-    SAVE_DATA_DIR = None
 
 
 class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
@@ -57,20 +53,13 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self._current_step = 0
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        if SAVE_DATA_DIR is not None:
-            self.default_save_dir = os.path.join(
-                SAVE_DATA_DIR,
-                env_name,
-                self.name,
-                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
-            )
-        else:
-            self.default_save_dir = os.path.join(
-                "saved_models",
-                env_name,
-                self.name,
-                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
-            )
+        _base_save_dir = get_save_dir() if get_save_dir() is not None else "saved_models"
+        self.default_save_dir = os.path.join(
+            _base_save_dir,
+            env_name,
+            self.name,
+            datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
+        )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
@@ -172,7 +161,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                         # Update target network
                         self.q_target.load_state_dict(self.q_online.state_dict())
 
-                        if self.summary_writer is not None:
+                        if self.write_summary:
                             self.summary_writer.add_scalar(
                                 "target_network_update_step",
                                 self.global_network_update_step,

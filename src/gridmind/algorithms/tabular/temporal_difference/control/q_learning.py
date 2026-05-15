@@ -24,7 +24,7 @@ class QLearning(BaseLearningAlgorithm):
         epsilon_decay: bool = False,
         epsilon: float = 0.1,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             "Q-Learning", env=env, summary_dir=summary_dir, write_summary=write_summary

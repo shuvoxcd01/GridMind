@@ -27,7 +27,7 @@ class NStepSARSA(BaseLearningAlgorithm):
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             "N-Step-SARSA",

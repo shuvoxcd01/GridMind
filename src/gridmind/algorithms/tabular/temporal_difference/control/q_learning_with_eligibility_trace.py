@@ -25,7 +25,7 @@ class QLearningWithEligibilityTrace(BaseLearningAlgorithm):
         epsilon_decay: bool = False,
         epsilon: float = 0.1,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             "Q-Learning with Eligibility Trace",

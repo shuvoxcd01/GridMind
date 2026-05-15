@@ -19,7 +19,7 @@ class NStepTDPrediction(BaseLearningAlgorithm):
         step_size: float = 0.01,
         discount_factor: float = 0.9,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             "N-Step-TD-Prediction",

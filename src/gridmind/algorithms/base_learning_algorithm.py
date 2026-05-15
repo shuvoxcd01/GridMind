@@ -6,8 +6,9 @@ from typing import Callable, Optional
 import dill
 from gridmind.policies.base_policy import BasePolicy
 import logging
+from gridmind.config import get_save_dir
 from gridmind.utils.divergence.base_divergence_detector import BaseDivergenceDetector
-from gridmind.utils.logtools.async_tensorboard_logger import AsyncTensorboardLogger
+from gridmind.utils.logtools.null_logger import NullWriter
 from gridmind.utils.performance_evaluation.base_performance_evaluator import (
     BasePerformanceEvaluator,
 )
@@ -16,12 +17,6 @@ from gridmind.wrappers.policy_wrappers.preprocessed_observation_policy_wrapper i
 )
 from gymnasium import Env
 from tqdm import trange
-from torch.utils.tensorboard import SummaryWriter
-
-try:
-    from data import SAVE_DATA_DIR
-except ImportError:
-    SAVE_DATA_DIR = None
 
 
 class BaseLearningAlgorithm(ABC):
@@ -30,7 +25,7 @@ class BaseLearningAlgorithm(ABC):
         name: str,
         env: Optional[Env] = None,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         self.name = name
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -48,12 +43,14 @@ class BaseLearningAlgorithm(ABC):
         self.monitor_divergence = False
         self.stop_on_divergence = False
 
+        self.summary_writer = NullWriter()
         self.write_summary = write_summary
         if self.write_summary:
-            assert (
-                summary_dir is not None or SAVE_DATA_DIR is not None
-            ), "Please specify summary_dir"
-
+            if summary_dir is None and get_save_dir() is None:
+                raise ValueError(
+                    "write_summary=True requires either summary_dir or "
+                    "gridmind.config.set_save_dir() to be set."
+                )
             self._initialize_summary_writer(summary_dir, env_name)
 
     def _initialize_summary_writer(
@@ -63,7 +60,10 @@ class BaseLearningAlgorithm(ABC):
         extra_info: str = "",
         use_async_writer: bool = False,
     ):
-        summary_dir = summary_dir if summary_dir is not None else SAVE_DATA_DIR
+        from torch.utils.tensorboard import SummaryWriter
+        from gridmind.utils.logtools.async_tensorboard_logger import AsyncTensorboardLogger
+
+        summary_dir = summary_dir if summary_dir is not None else get_save_dir()
 
         log_dir = os.path.join(
             summary_dir,
@@ -291,11 +291,8 @@ class BaseLearningAlgorithm(ABC):
         if save_policy:
             env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
-        if save_policy:
-            env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-
-            if SAVE_DATA_DIR is not None:
-                saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+            if get_save_dir() is not None:
+                saved_policy_dir = os.path.join(get_save_dir(), env_name)
                 self.save_policy(saved_policy_dir)
 
     def _report_all_metrics(self):
@@ -314,8 +311,8 @@ class BaseLearningAlgorithm(ABC):
 
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
 
-        if SAVE_DATA_DIR is not None:
-            saved_policy_dir = os.path.join(SAVE_DATA_DIR, env_name)
+        if get_save_dir() is not None:
+            saved_policy_dir = os.path.join(get_save_dir(), env_name)
             self.save_policy(saved_policy_dir)
 
     def evaluate_policy(self, num_episodes: int):
