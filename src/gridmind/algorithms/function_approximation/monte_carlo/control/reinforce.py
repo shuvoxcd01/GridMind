@@ -104,11 +104,14 @@ class Reinforce(BaseLearningAlgorithm):
 
             discounted_return = 0.0
 
+            # NOTE: The γ^t weight (discount_factor**timestep) underflows to ~0 in float32
+            # for episodes longer than ~3000 steps with γ=0.99. For long-horizon tasks,
+            # consider using discount_factor=1.0 or removing the γ^t term.
             for timestep in reversed(range(trajectory.get_trajectory_length())):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
 
-                log_prob = torch.log(self.policy.get_action_prob(obs, action))
+                log_prob = self.policy.get_log_action_prob(obs, action)
 
                 policy_grads = torch.autograd.grad(
                     log_prob,
@@ -117,11 +120,11 @@ class Reinforce(BaseLearningAlgorithm):
                 if i % 100 == 0 and i != 0:
                     self.logger.debug(f"Policy grads: {policy_grads}")
 
-                # # Clipping for policy gradients
-                # policy_norm = torch.sqrt(sum(grad.norm()**2 for grad in policy_grads if grad is not None))
-                # if policy_norm > self.grad_clip_value:
-                #     scaling_factor = self.grad_clip_value / policy_norm
-                #     policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
+                # Clipping for policy gradients
+                policy_norm = torch.sqrt(sum(grad.norm()**2 for grad in policy_grads if grad is not None))
+                if policy_norm > self.grad_clip_value:
+                    scaling_factor = self.grad_clip_value / policy_norm
+                    policy_grads = [grad * scaling_factor if grad is not None else None for grad in policy_grads]
 
                 # self.logger.debug(f"Clipped policy grads: {policy_grads}")
 

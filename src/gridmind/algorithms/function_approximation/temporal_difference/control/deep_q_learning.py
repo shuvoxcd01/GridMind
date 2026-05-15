@@ -22,7 +22,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         env: Env,
         q_network: Optional[QNetwork] = None,
         step_size: float = 0.001,
-        discount_factor: float = 0.9,
+        discount_factor: float = 0.99,
         batch_size: int = 32,
         epsilon_decay: bool = True,
         epsilon_decay_rate: float = 0.0001,
@@ -113,6 +113,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                 )
                 observation = next_observation
 
+                # Training starts as soon as batch_size samples exist; Mnih et al. 2015 use a ~50K-step warm-up.
                 if self.replay_buffer.size() >= self.batch_size:
                     (
                         observations,
@@ -147,7 +148,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                     q_values = (
                         self.q_online(observations)
                         .gather(1, actions.unsqueeze(1))
-                        .squeeze()
+                        .squeeze(-1)
                     )
                     loss = torch.nn.functional.mse_loss(q_values, target_q_values)
                     loss.backward()
@@ -176,6 +177,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
 
     def _select_action(self, observation):
         """Select an action using epsilon-greedy policy."""
+        # Counts action-selection calls; epsilon reaches epsilon_min after (epsilon_max - epsilon_min) / epsilon_decay_rate steps.
         self._current_step += 1
 
         if self.epsilon_decay:

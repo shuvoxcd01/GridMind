@@ -120,11 +120,14 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
 
             discounted_return = 0.0
 
+            # NOTE: The γ^t weight (discount_factor**timestep) underflows to ~0 in float32
+            # for episodes longer than ~3000 steps with γ=0.99. For long-horizon tasks,
+            # consider using discount_factor=1.0 or removing the γ^t term.
             for timestep in reversed(range(trajectory.get_trajectory_length())):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
                 obs = self._preprocess(obs)
-                log_prob = torch.log(self.policy.get_action_prob(obs, action))
+                log_prob = self.policy.get_log_action_prob(obs, action)
                 value_pred = self.value_estimator(obs)
                 delta = discounted_return - value_pred
 

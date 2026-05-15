@@ -91,10 +91,13 @@ class GradientMonteCarloPrediction(BaseFunctionApproximationBasedLearingAlgorith
                 if isinstance(state, numbers.Number):
                     state = torch.tensor(state).unsqueeze(0)
 
-                state = torch.tensor(state, dtype=torch.float32)
+                if not isinstance(state, torch.Tensor):
+                    state = torch.tensor(state, dtype=torch.float32)
+                else:
+                    state = state.to(torch.float32)
                 value_pred = self.V(state)
                 grads = torch.autograd.grad(value_pred, self.V.parameters())
-                update = self.step_size * (discounted_return - value_pred)
+                update = self.step_size * (discounted_return - value_pred.item())
 
                 with torch.no_grad():
                     for param, grad in zip(self.V.parameters(), grads):

@@ -82,20 +82,16 @@ class SemiGradientTD0Prediction(BaseLearningAlgorithm):
                     action
                 )
 
-                _input = observation
-                _next_input = next_observation
-
-                _input = self._preprocess(_input)
+                _input = self._preprocess(observation)
+                value_pred = self.V(_input)
 
                 if not terminated:
-                    _next_input = self._preprocess(_next_input)
-
-                target_value = (
-                    reward + self.discount_factor * self.V(_next_input)
-                    if not terminated
-                    else reward
-                )
-                value_pred = self.V(_input)
+                    _next_input = self._preprocess(next_observation)
+                    with torch.no_grad():
+                        next_val = self.V(_next_input).item()
+                    target_value = reward + self.discount_factor * next_val
+                else:
+                    target_value = reward
 
                 delta = self.step_size * (target_value - value_pred)
 

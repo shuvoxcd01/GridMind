@@ -57,7 +57,6 @@ class PPO(BaseLearningAlgorithm):
                 observation_shape=observation_shape, num_actions=num_actions
             )
         )
-        self.T = 500
         self.num_epochs = 10
         self.minibatch_size = 64
         self.optimizer = torch.optim.Adam(
@@ -105,6 +104,9 @@ class PPO(BaseLearningAlgorithm):
         raise NotImplementedError()
 
     def _train_episodes(self, num_episodes, prediction_only):
+        # num_episodes counts update iterations, not environment episodes.
+        # Each iteration collects num_collect_episodes=5 env episodes, so
+        # total environment episodes = num_episodes * 5.
         assert not prediction_only, "Prediction only is not supported for PPO"
 
         num_collect_episodes = 5

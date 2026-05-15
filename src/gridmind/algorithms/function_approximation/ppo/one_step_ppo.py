@@ -147,6 +147,11 @@ class OneStepPPO(BaseLearningAlgorithm):
                         done = terminated or truncated
                         observation = next_observation
 
+            # Normalize advantages (1-step TD errors) for training stability.
+            deltas_tensor = torch.stack(deltas)
+            deltas_tensor = (deltas_tensor - deltas_tensor.mean()) / (deltas_tensor.std() + 1e-8)
+            deltas = list(deltas_tensor)
+
             for epoch in range(self.num_epochs):
                 indices = list(range(len(observations)))
                 random.shuffle(indices)
