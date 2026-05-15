@@ -88,12 +88,3 @@ class AtariPolicy(BaseParameterizedPolicy):
 
     def update(self, state, action):
         pass
-
-
-if __name__ == "__main__":
-    model = AtariPolicy(
-        observation_shape=(4, 84, 84), num_actions=6, channel_first=True
-    )  # 4 stacked frames, 6 possible actions
-    sample_input = torch.zeros((1, 4, 84, 84))  # batch of 1, 4 channels, 84x84 image
-    output = model(sample_input)
-    print(output.shape)  # torch.Size([1, 6])

@@ -106,14 +106,3 @@ class TileCoding:
         tiles = self.tiles(self.ihtORsize, self.numtilings, floats, ints, readonly)
         tiles = np.array(tiles)
         return tiles
-
-
-if __name__ == "__main__":
-    iht = IHT(4096)
-    tc = TileCoding(iht, 8)
-    tiles = tc([0.1, 0.1])
-    print(tiles)
-    x = -0.5675576
-    xdot = 0.0
-    A = [1]
-    print(tc.tiles(iht, 8, [8 * x / (0.5 + 1.2), 8 * xdot / (0.07 + 0.07)], A))

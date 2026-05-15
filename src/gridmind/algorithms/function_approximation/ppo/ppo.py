@@ -245,22 +245,3 @@ class PPO(BaseLearningAlgorithm):
                             self.policy.parameters(), self.max_grad_norm
                         )
                     self.optimizer.step()
-
-
-if __name__ == "__main__":
-    import gymnasium as gym
-
-    env = gym.make("CartPole-v1")
-
-    eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
-    performance_evaluator = BasicPerformanceEvaluator(
-        env=eval_env, epoch_eval_interval=100
-    )
-    policy = ActorCriticPolicy(
-        observation_shape=env.observation_space.shape,
-        num_actions=env.action_space.n,
-    )
-    algorithm = PPO(env=env, policy=policy)
-    algorithm.register_performance_evaluator(performance_evaluator)
-
-    algorithm.train_episodes(num_episodes=1000, prediction_only=False)

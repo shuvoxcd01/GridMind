@@ -121,25 +121,3 @@ class FrozenLakeEnvWrapper(BaseGymWrapper):
             ).astype(float)
 
         return observation_encoded, info
-
-
-if __name__ == "__main__":
-    env = FrozenLakeEnvWrapper(render_mode="human")
-
-    observation = env.reset()
-    done = False
-
-    while not done:
-        env.render()
-        action = env.action_space.sample()
-        (
-            observation,
-            reward,
-            terminated,
-            truncated,
-            _,
-        ) = env.step(action)
-        done = terminated or truncated
-        print(f"Observation: {observation}, Reward: {reward}, Done: {done}")
-
-    env.close()

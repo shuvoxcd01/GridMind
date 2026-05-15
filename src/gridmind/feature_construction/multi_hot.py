@@ -11,9 +11,3 @@ class MultiHotEncoder:
         multi_hot[indices] = 1
 
         return multi_hot
-
-
-if __name__ == "__main__":
-    encoder = MultiHotEncoder(10)
-    categories = np.array([1, 3, 5])
-    print(encoder(categories))

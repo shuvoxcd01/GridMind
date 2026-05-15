@@ -134,20 +134,3 @@ class Reinforce(BaseLearningAlgorithm):
                             * discounted_return
                             * grad
                         )
-
-
-if __name__ == "__main__":
-    import gymnasium as gym
-
-    env = gym.make("CartPole-v1")
-
-    eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
-
-    performance_evaluator = BasicPerformanceEvaluator(
-        env=eval_env, epoch_eval_interval=500
-    )
-    # policy = ActorCriticPolicy(env)
-    algorithm = Reinforce(env=env, step_size=0.0001)
-    algorithm.register_performance_evaluator(performance_evaluator)
-
-    algorithm.train_episodes(num_episodes=10000, prediction_only=False)
