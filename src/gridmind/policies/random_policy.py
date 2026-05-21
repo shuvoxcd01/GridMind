@@ -30,5 +30,14 @@ class RandomPolicy(BasePolicy):
 
         return action_probs
 
+    def get_all_action_probabilities(self, states):
+        import numpy as np
+
+        uniform_prob = 1.0 / self.num_actions
+        action_probs_list = [
+            [uniform_prob] * self.num_actions for _ in states
+        ]
+        return np.array(action_probs_list).squeeze()
+
     def update(self, state, action):
         raise Exception("This policy is for prediction (value estimation only).")
