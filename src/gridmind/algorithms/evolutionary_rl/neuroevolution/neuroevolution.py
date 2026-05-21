@@ -95,7 +95,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
             num_actions=self.num_actions,
             num_hidden_layers=2,
         )
-        spawned_individual = NeuroAgent(policy=network)
+        spawned_individual = NeuroAgent(network=network)
 
         return spawned_individual
 
