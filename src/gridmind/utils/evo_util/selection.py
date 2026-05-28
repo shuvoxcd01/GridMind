@@ -67,15 +67,3 @@ class Selection:
         selected = random.sample(population, num_selection)
 
         return selected
-
-
-if __name__ == "__main__":
-    agents = [
-        NeuroAgent(fitness=None),
-        NeuroAgent(fitness=1.0),
-        NeuroAgent(fitness=3.0),
-    ]
-
-    s = Selection.fitness_proportionate_selection(agents, 10)
-
-    print([a.name for a in s])

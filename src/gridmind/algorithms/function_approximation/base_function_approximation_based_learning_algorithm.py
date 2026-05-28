@@ -13,7 +13,7 @@ class BaseFunctionApproximationBasedLearingAlgorithm(BaseLearningAlgorithm):
         env: Optional[Env] = None,
         feature_constructor=None,
         summary_dir=None,
-        write_summary=True,
+        write_summary=False,
     ):
         super().__init__(name, env, summary_dir, write_summary)
         self.feature_constructor = feature_constructor

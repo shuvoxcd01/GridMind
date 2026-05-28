@@ -29,7 +29,7 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
         feature_constructor=None,
         grad_clip_value: float = 1.0,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "ReinforceWithBaseline",
@@ -120,11 +120,14 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
 
             discounted_return = 0.0
 
+            # NOTE: The γ^t weight (discount_factor**timestep) underflows to ~0 in float32
+            # for episodes longer than ~3000 steps with γ=0.99. For long-horizon tasks,
+            # consider using discount_factor=1.0 or removing the γ^t term.
             for timestep in reversed(range(trajectory.get_trajectory_length())):
                 obs, action, reward = trajectory.get_step(timestep)
                 discounted_return = self.discount_factor * discounted_return + reward
                 obs = self._preprocess(obs)
-                log_prob = torch.log(self.policy.get_action_prob(obs, action))
+                log_prob = self.policy.get_log_action_prob(obs, action)
                 value_pred = self.value_estimator(obs)
                 delta = discounted_return - value_pred
 
@@ -163,40 +166,3 @@ class ReinforceWithBaseline(BaseLearningAlgorithm):
                             * delta
                             * grad
                         )
-
-
-if __name__ == "__main__":
-    import gymnasium as gym
-    from gridmind.feature_construction.one_hot import OneHotEncoder
-
-    env = gym.make(
-        "FrozenLake-v1",
-        desc=None,
-        map_name="4x4",
-        is_slippery=False,
-    )
-    feature_encoder = OneHotEncoder(num_classes=env.observation_space.n)
-    # env = gym.make("CartPole-v1")
-
-    # eval_env = gym.make("CartPole-v1", render_mode="rgb_array")
-    eval_env = gym.make(
-        "FrozenLake-v1",
-        desc=None,
-        map_name="4x4",
-        is_slippery=False,
-        render_mode="rgb_array",
-    )
-
-    performance_evaluator = BasicPerformanceEvaluator(
-        env=eval_env, epoch_eval_interval=500
-    )
-    # policy = ActorCriticPolicy(env)
-    algorithm = ReinforceWithBaseline(
-        env=env,
-        policy_step_size=0.1,
-        value_step_size=0.1,
-        feature_constructor=feature_encoder,
-    )
-    algorithm.register_performance_evaluator(performance_evaluator)
-
-    algorithm.train_episodes(num_episodes=10000, prediction_only=False)

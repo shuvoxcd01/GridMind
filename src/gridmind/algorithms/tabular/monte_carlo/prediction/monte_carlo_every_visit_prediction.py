@@ -22,7 +22,7 @@ class MonteCarloEveryVisitPrediction(BaseLearningAlgorithm):
         policy: BasePolicy,
         discount_factor: float = 0.9,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             name="MCEveryVisitPrediction",

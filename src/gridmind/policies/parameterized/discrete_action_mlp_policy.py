@@ -88,6 +88,11 @@ class DiscreteActionMLPPolicy(BaseParameterizedPolicy):
 
         return action_probs[action]
 
+    def get_log_action_prob(self, state: torch.Tensor, action: int) -> torch.Tensor:
+        logits = self.forward(state)
+        log_probs = F.log_softmax(logits, dim=-1)
+        return log_probs[action]
+
     def get_all_action_probabilities(self, states):
         action_probs = self.forward(states)
 

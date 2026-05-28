@@ -72,16 +72,3 @@ class SimpleReplayBuffer:
         if num_elements > self.size():
             raise ValueError("Number of elements to pop is greater than buffer size.")
         return [self.buffer.popleft() for _ in range(num_elements)]
-
-
-if __name__ == "__main__":
-    buffer = SimpleReplayBuffer(None)
-    buffer.store(np.array([0, 0, 0]), 0, 1, np.array([1, 1, 1]), False, False)
-    buffer.store(np.array([2, 2, 2]), 1, 0.5, np.array([3, 3, 3]), True, False)
-    batch = buffer.sample(2)
-    print(batch)
-    print(buffer.size())
-    batch_2 = buffer.sample(2, sequential=True)
-    print(batch_2)
-    buffer.clear()
-    print(buffer.size())

@@ -29,6 +29,14 @@ class NeuroAgent(object):
         return f"NeuroAgent(id={self.id}, fitness={self.fitness}, starting_generation={self.starting_generation})"
 
     @property
+    def policy(self):
+        return self.network
+
+    @policy.setter
+    def policy(self, value):
+        self.network = value
+
+    @property
     def id(self):
         return str(self._id)
 

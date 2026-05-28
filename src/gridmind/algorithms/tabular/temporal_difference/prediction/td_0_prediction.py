@@ -18,7 +18,7 @@ class TD0Prediction(BaseLearningAlgorithm):
         step_size: float = 0.1,
         discount_factor: float = 0.9,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             name="TD-0-Prediction",

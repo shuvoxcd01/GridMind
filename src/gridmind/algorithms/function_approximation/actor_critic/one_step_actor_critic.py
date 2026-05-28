@@ -28,7 +28,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "OneStepActorCritic",
@@ -129,9 +129,12 @@ class OneStepActorCritic(BaseLearningAlgorithm):
 
                 next_observation = self._preprocess(next_observation)
 
-                next_state_value = (
-                    self.value_estimator(next_observation) if not terminated else 0
-                )
+                with torch.no_grad():
+                    next_state_value = (
+                        self.value_estimator(next_observation)
+                        if not terminated
+                        else torch.tensor(0.0)
+                    )
 
                 cur_state_value = self.value_estimator(observation)
 
@@ -146,7 +149,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
                 self.logger.debug(f"Value grads: {value_grads}")
 
                 policy_grads = torch.autograd.grad(
-                    torch.log(self.policy.get_action_prob(observation, action)),
+                    self.policy.get_log_action_prob(observation, action),
                     self.policy.parameters(),
                 )
                 self.logger.debug(f"Policy grads: {policy_grads}")

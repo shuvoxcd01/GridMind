@@ -25,7 +25,7 @@ class SARSA(BaseLearningAlgorithm):
         epsilon_decay: bool = False,
         feature_constructor: Callable = None,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             "SARSA", env=env, summary_dir=summary_dir, write_summary=write_summary

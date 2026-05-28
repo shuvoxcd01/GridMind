@@ -196,14 +196,3 @@ class VideoUtil:
                 del video_frames
             gc.collect()
             return None
-
-
-if __name__ == "__main__":
-    # Example usage
-    feature1 = [0, 0, 1, 1]
-    feature2 = [0, 1, 0, 1]
-    state_values = [1.0, 0.5, 0.8, 0.2]
-
-    print_value_table(
-        feature1, feature2, state_values, feature1_name="X-axis", feature2_name="Y-axis"
-    )

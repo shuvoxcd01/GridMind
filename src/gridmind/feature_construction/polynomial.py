@@ -27,13 +27,3 @@ class PolynomialFeatureConstructor:
 
         features = self._feature_constuctor(state)
         return features
-
-
-if __name__ == "__main__":
-    state = np.array([2, 2, 3])
-    fc = PolynomialFeatureConstructor(n=1)
-    features_1 = fc(state)
-    features_2 = fc(state)
-
-    print(features_1)
-    print(features_2)

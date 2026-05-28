@@ -5,7 +5,7 @@ import gymnasium as gym
 
 def test_deep_q_learning_no_exceptions():
     env = gym.make("CartPole-v1")
-    algorithm = DeepQLearning(env=env)
+    algorithm = DeepQLearning(env=env, write_summary=False)
     try:
         algorithm.train_episodes(
             num_episodes=10, prediction_only=False, save_policy=False

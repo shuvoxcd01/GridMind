@@ -1,0 +1,178 @@
+"""
+Min-Max normalization for continuous observations.
+
+This module provides a callable MinMaxNormalizer class for normalizing observations
+to a target range (default [0, 1]) based on known lower and upper bounds.
+"""
+
+from typing import Tuple, Union
+
+import numpy as np
+
+
+class MinMaxNormalizer:
+    """
+    Min-Max normalization that scales observations to a target range.
+
+    Transforms observations from [low, high] to [target_min, target_max] using:
+        normalized = (obs - low) / (high - low) * (target_max - target_min) + target_min
+
+    This is a callable class that can be used as a feature constructor for
+    environments with known observation bounds (e.g., MountainCar, Pendulum).
+
+    Parameters
+    ----------
+    low : np.ndarray or float
+        Lower bounds of the observation space. Can be a scalar (applied to all dimensions)
+        or an array matching observation shape.
+    high : np.ndarray or float
+        Upper bounds of the observation space. Can be a scalar (applied to all dimensions)
+        or an array matching observation shape.
+    clip : bool, optional
+        If True, clip observations to [low, high] before normalizing.
+        Useful for handling observations that may occasionally exceed bounds.
+        Default is False.
+    target_range : Tuple[float, float], optional
+        Target range for normalized values as (min, max).
+        Default is (0, 1). Use (-1, 1) for tanh-like outputs.
+    epsilon : float, optional
+        Small value added to denominator to prevent division by zero when low == high.
+        Default is 1e-8.
+
+    Examples
+    --------
+    >>> # Mountain Car environment bounds
+    >>> normalizer = MinMaxNormalizer(
+    ...     low=np.array([-1.2, -0.07]),
+    ...     high=np.array([0.6, 0.07])
+    ... )
+    >>> obs = np.array([-0.5, 0.0])
+    >>> normalized = normalizer(obs)
+    >>> print(normalized)  # [0.38888889, 0.5]
+
+    >>> # Normalize to [-1, 1] range
+    >>> normalizer = MinMaxNormalizer(
+    ...     low=-1.0, high=1.0, target_range=(-1, 1)
+    ... )
+    >>> obs = np.array([0.0])
+    >>> normalized = normalizer(obs)
+    >>> print(normalized)  # [0.0]
+
+    >>> # Batch normalization
+    >>> normalizer = MinMaxNormalizer(low=0.0, high=10.0)
+    >>> batch_obs = np.array([[0.0], [5.0], [10.0]])
+    >>> normalized_batch = normalizer(batch_obs)
+    >>> print(normalized_batch)  # [[0.0], [0.5], [1.0]]
+    """
+
+    def __init__(
+        self,
+        low: Union[np.ndarray, float],
+        high: Union[np.ndarray, float],
+        clip: bool = False,
+        target_range: Tuple[float, float] = (0.0, 1.0),
+        epsilon: float = 1e-8,
+    ):
+        """
+        Initialize the MinMaxNormalizer.
+
+        Parameters
+        ----------
+        low : np.ndarray or float
+            Lower bounds of the observation space.
+        high : np.ndarray or float
+            Upper bounds of the observation space.
+        clip : bool, optional
+            Whether to clip observations to [low, high] before normalizing.
+        target_range : Tuple[float, float], optional
+            Target range for normalized values as (min, max).
+        epsilon : float, optional
+            Small value to prevent division by zero.
+
+        Raises
+        ------
+        ValueError
+            If any element of low >= high.
+        ValueError
+            If target_range[0] >= target_range[1].
+        """
+        # Convert to numpy arrays for consistent handling
+        self.low = np.asarray(low, dtype=np.float32)
+        self.high = np.asarray(high, dtype=np.float32)
+        self.clip = clip
+        self.epsilon = epsilon
+
+        # Validate target_range
+        if len(target_range) != 2:
+            raise ValueError(
+                f"target_range must be a tuple of length 2, got {len(target_range)}"
+            )
+
+        self.target_min, self.target_max = target_range
+
+        if self.target_min >= self.target_max:
+            raise ValueError(
+                f"target_range min ({self.target_min}) must be less than max ({self.target_max})"
+            )
+
+        # Validate that low < high
+        if np.any(self.low >= self.high):
+            raise ValueError(
+                f"All elements of low must be strictly less than high. "
+                f"Got low={self.low}, high={self.high}"
+            )
+
+        # Precompute scaling factors for efficiency.
+        # Use epsilon only as a floor to guard against near-zero ranges.
+        self.scale = (self.target_max - self.target_min) / np.maximum(
+            self.high - self.low, self.epsilon
+        )
+        self.offset = self.target_min - self.low * self.scale
+
+    def __call__(self, observation: np.ndarray) -> np.ndarray:
+        """
+        Normalize observation(s) to the target range.
+
+        Parameters
+        ----------
+        observation : np.ndarray
+            Observation(s) to normalize. Can be:
+            - 1D array: single observation (shape: (obs_dim,))
+            - 2D array: batch of observations (shape: (batch_size, obs_dim))
+
+        Returns
+        -------
+        np.ndarray
+            Normalized observation(s) with the same shape as input.
+            Values will be in the range [target_min, target_max].
+
+        Examples
+        --------
+        >>> normalizer = MinMaxNormalizer(low=0.0, high=10.0)
+        >>> # Single observation
+        >>> obs = np.array([5.0])
+        >>> print(normalizer(obs))  # [0.5]
+        >>> # Batch of observations
+        >>> batch = np.array([[0.0], [5.0], [10.0]])
+        >>> print(normalizer(batch))  # [[0.0], [0.5], [1.0]]
+        """
+        # Convert to numpy array if not already
+        obs = np.asarray(observation, dtype=np.float32)
+
+        # Clip if requested (handles out-of-bounds values)
+        if self.clip:
+            obs = np.clip(obs, self.low, self.high)
+
+        # Apply normalization: obs * scale + offset
+        # Broadcasting handles both single observations and batches
+        normalized = obs * self.scale + self.offset
+
+        return normalized
+
+    def __repr__(self) -> str:
+        """String representation of the normalizer."""
+        return (
+            f"MinMaxNormalizer(low={self.low}, high={self.high}, "
+            f"clip={self.clip}, target_range=({self.target_min}, {self.target_max}), "
+            f"epsilon={self.epsilon})"
+        )

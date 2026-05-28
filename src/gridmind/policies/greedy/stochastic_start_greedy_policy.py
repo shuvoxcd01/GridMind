@@ -32,6 +32,17 @@ class StochasticStartGreedyPolicy(BasePolicy):
 
         return action_probs
 
+    def get_all_action_probabilities(self, states):
+        import numpy as np
+
+        action_probs_list = []
+        for state in states:
+            greedy_action = self.get_action(state)
+            probs = [1.0 if a == greedy_action else 0.0 for a in range(self.num_actions)]
+            action_probs_list.append(probs)
+
+        return np.array(action_probs_list).squeeze()
+
     def update(self, state, action):
         assert (
             action in self.action_space if self.action_space is not None else True

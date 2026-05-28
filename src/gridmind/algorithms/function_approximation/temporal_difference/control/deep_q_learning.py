@@ -4,6 +4,7 @@ from typing import Callable, Optional
 from gridmind.algorithms.function_approximation.base_function_approximation_based_learning_algorithm import (
     BaseFunctionApproximationBasedLearingAlgorithm,
 )
+from gridmind.config import get_save_dir
 from gridmind.policies.soft.q_derived.q_network_derived_epsilon_greedy_policy import (
     QNetworkDerivedEpsilonGreedyPolicy,
 )
@@ -14,11 +15,6 @@ import torch
 from tqdm import trange
 from datetime import datetime
 
-try:
-    from data import SAVE_DATA_DIR
-except ImportError:
-    SAVE_DATA_DIR = None
-
 
 class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
     def __init__(
@@ -26,7 +22,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         env: Env,
         q_network: Optional[QNetwork] = None,
         step_size: float = 0.001,
-        discount_factor: float = 0.9,
+        discount_factor: float = 0.99,
         batch_size: int = 32,
         epsilon_decay: bool = True,
         epsilon_decay_rate: float = 0.0001,
@@ -34,7 +30,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         epsilon_max: float = 1.0,
         feature_constructor: Optional[Callable] = None,
         summary_dir=None,
-        write_summary=True,
+        write_summary=False,
         replay_buffer_capacity: Optional[int] = None,
         target_network_update_frequency: int = 1000,
     ):
@@ -57,20 +53,13 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         self.replay_buffer = SimpleReplayBuffer(capacity=replay_buffer_capacity)
         self._current_step = 0
         env_name = self.env.spec.id if self.env.spec is not None else "unknown"
-        if SAVE_DATA_DIR is not None:
-            self.default_save_dir = os.path.join(
-                SAVE_DATA_DIR,
-                env_name,
-                self.name,
-                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
-            )
-        else:
-            self.default_save_dir = os.path.join(
-                "saved_models",
-                env_name,
-                self.name,
-                datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
-            )
+        _base_save_dir = get_save_dir() if get_save_dir() is not None else "saved_models"
+        self.default_save_dir = os.path.join(
+            _base_save_dir,
+            env_name,
+            self.name,
+            datetime.strftime(datetime.now(), "%Y-%m-%d_%H-%M-%S"),
+        )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.logger.info(f"Using device: {self.device}")
@@ -124,6 +113,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                 )
                 observation = next_observation
 
+                # Training starts as soon as batch_size samples exist; Mnih et al. 2015 use a ~50K-step warm-up.
                 if self.replay_buffer.size() >= self.batch_size:
                     (
                         observations,
@@ -158,7 +148,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                     q_values = (
                         self.q_online(observations)
                         .gather(1, actions.unsqueeze(1))
-                        .squeeze()
+                        .squeeze(-1)
                     )
                     loss = torch.nn.functional.mse_loss(q_values, target_q_values)
                     loss.backward()
@@ -172,7 +162,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
                         # Update target network
                         self.q_target.load_state_dict(self.q_online.state_dict())
 
-                        if self.summary_writer is not None:
+                        if self.write_summary:
                             self.summary_writer.add_scalar(
                                 "target_network_update_step",
                                 self.global_network_update_step,
@@ -187,6 +177,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
 
     def _select_action(self, observation):
         """Select an action using epsilon-greedy policy."""
+        # Counts action-selection calls; epsilon reaches epsilon_min after (epsilon_max - epsilon_min) / epsilon_decay_rate steps.
         self._current_step += 1
 
         if self.epsilon_decay:

@@ -13,13 +13,14 @@ import numpy as np
 from tqdm import tqdm
 
 
-class QLearning(BaseLearningAlgorithm):
+class QLearningWithEligibilityTrace(BaseLearningAlgorithm):
     def __init__(
         self,
         env: Env,
         policy: Optional[BaseQDerivedSoftPolicy] = None,
         step_size: float = 0.1,
         discount_factor: float = 0.9,
+        eligibility_trace_decay: float = 0.9,
         q_initializer: str = "zero",
         epsilon_decay: bool = False,
         epsilon: float = 0.1,
@@ -27,7 +28,10 @@ class QLearning(BaseLearningAlgorithm):
         write_summary: bool = False,
     ) -> None:
         super().__init__(
-            "Q-Learning", env=env, summary_dir=summary_dir, write_summary=write_summary
+            "Q-Learning with Eligibility Trace",
+            env=env,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
         )
         self.num_actions = self.env.action_space.n
         self.epsilon_decay = epsilon_decay
@@ -56,6 +60,13 @@ class QLearning(BaseLearningAlgorithm):
         self.step_size = step_size
         self.discount_factor = discount_factor
 
+        assert (
+            0.0 <= eligibility_trace_decay <= 1.0
+        ), "eligibility_trace_decay must be in range 0 to 1."
+
+        self.eligibility_trace_decay = eligibility_trace_decay
+        self.eligibility_traces = defaultdict(lambda: np.zeros(self.num_actions))
+
     def _get_state_value_fn(self, force_functional_interface: bool = True):
         raise Exception(
             f"{self.name} computes only state-action values. Use get_state_action_values() to get state-action values."
@@ -81,25 +92,67 @@ class QLearning(BaseLearningAlgorithm):
             obs, info = self.env.reset()
             done = False
 
-            while not done:
-                action_mask = info.get("action_mask", None)
-                action = self.policy.get_action(obs, action_mask=action_mask)
+            self.eligibility_traces.clear()
 
+            action_mask = info.get("action_mask", None)
+            action = self.policy.get_action(obs, action_mask=action_mask)
+
+            while not done:
                 next_obs, reward, terminated, truncated, info = self.env.step(action)
 
-                self.q_values[obs][action] = self.q_values[obs][
-                    action
-                ] + self.step_size * (
-                    reward
-                    + self.discount_factor
-                    * np.max(self.q_values[next_obs])
-                    * (1 - terminated)
-                    - self.q_values[obs][action]
+                next_action_mask = info.get("action_mask", None)
+                next_action = self.policy.get_action(
+                    next_obs, action_mask=next_action_mask
                 )
-                self.policy.update_q(
-                    state=obs, action=action, value=self.q_values[obs][action]
+                next_q_values = self.policy.get_q_values(
+                    next_obs, action_mask=next_action_mask
                 )
+                next_max_q = np.max(next_q_values)
+                next_action_q = next_q_values[next_action]
+                is_next_action_greedy = np.isclose(
+                    next_action_q, next_max_q, rtol=1e-8, atol=1e-12
+                )
+
+                td_target = reward + self.discount_factor * np.max(next_q_values) * (
+                    1 - terminated
+                )
+                td_error = td_target - self.policy.get_q_value(
+                    obs, action, action_mask=action_mask
+                )
+
+                self.eligibility_traces[obs][action] = 1.0
+
+                states_to_prune = []
+                for state in self.eligibility_traces:
+                    self.q_values[state] = (
+                        self.q_values[state]
+                        + self.step_size * td_error * self.eligibility_traces[state]
+                    )
+
+                    for action_index, action_value in enumerate(self.q_values[state]):
+                        self.policy.update_q(
+                            state=state, action=action_index, value=action_value
+                        )
+
+                    self.eligibility_traces[state] = (
+                        self.discount_factor
+                        * self.eligibility_trace_decay
+                        * self.eligibility_traces[state]
+                    )
+
+                    if np.all(self.eligibility_traces[state] < 1e-12):
+                        states_to_prune.append(state)
+
+                # Watkins' cutoff: zero all traces when a non-greedy action is taken
+                if not is_next_action_greedy:
+                    self.eligibility_traces.clear()
+                else:
+                    for state in states_to_prune:
+                        del self.eligibility_traces[state]
+
                 obs = next_obs
+                action = next_action
+                action_mask = next_action_mask
                 done = terminated or truncated
 
             if self.epsilon_decay:

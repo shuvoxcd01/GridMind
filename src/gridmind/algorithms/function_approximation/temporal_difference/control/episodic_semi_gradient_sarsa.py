@@ -25,7 +25,7 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
         epsilon_decay: bool = True,
         feature_constructor: Callable = None,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "Episodic-Semi-Gradient-SARSA",
@@ -129,13 +129,12 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
                 next_observation = self._preprocess(next_observation)
                 next_action = self.policy.get_action(next_observation)
 
-                target_action_value = (
-                    reward
-                    + self.discount_factor
-                    * self.action_value_estimator(next_observation)[next_action]
-                    if not terminated
-                    else reward
-                )
+                if not terminated:
+                    with torch.no_grad():
+                        next_q = self.action_value_estimator(next_observation)[next_action].item()
+                    target_action_value = reward + self.discount_factor * next_q
+                else:
+                    target_action_value = reward
 
                 action_value_pred = self.action_value_estimator(observation)[action]
 
@@ -155,4 +154,4 @@ class EpisodicSemiGradientSARSA(BaseLearningAlgorithm):
                 action = next_action
                 done = terminated or truncated
 
-                self.policy.set_network(self.action_value_estimator)
+            self.policy.set_network(self.action_value_estimator)
