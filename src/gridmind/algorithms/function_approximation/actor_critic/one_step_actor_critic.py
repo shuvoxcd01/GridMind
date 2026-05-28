@@ -28,7 +28,7 @@ class OneStepActorCritic(BaseLearningAlgorithm):
         clip_grads: bool = True,
         grad_clip_value: float = 1.0,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "OneStepActorCritic",

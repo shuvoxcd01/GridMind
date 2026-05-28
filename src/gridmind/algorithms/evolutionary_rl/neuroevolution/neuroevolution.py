@@ -34,7 +34,7 @@ class NeuroEvolution(BaseEvoRLAlgorithm):
         num_processes: Optional[int] = None,
         stopping_fitness: Optional[float] = None,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             name="NeuroEvolution",

@@ -29,7 +29,7 @@ class PPO(BaseLearningAlgorithm):
         max_grad_norm: float = 0.5,
         entropy_coefficient: float = 0.02,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "ProximalPolicyOptimization",

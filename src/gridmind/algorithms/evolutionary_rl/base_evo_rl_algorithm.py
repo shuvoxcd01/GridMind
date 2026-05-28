@@ -11,7 +11,7 @@ class BaseEvoRLAlgorithm(BaseLearningAlgorithm):
         name: str,
         env: Optional[Env] = None,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             name, env, summary_dir=summary_dir, write_summary=write_summary

@@ -25,11 +25,15 @@ class GradientMonteCarloPrediction(BaseFunctionApproximationBasedLearingAlgorith
         step_size: float = 0.001,
         discount_factor: float = 0.9,
         feature_constructor: Callable = None,
+        summary_dir: Optional[str] = None,
+        write_summary: bool = False,
     ) -> None:
         super().__init__(
             name="GradientMCPrediction",
             env=env,
             feature_constructor=feature_constructor,
+            summary_dir=summary_dir,
+            write_summary=write_summary,
         )
         self.policy = policy
         self.feature_constructor = feature_constructor

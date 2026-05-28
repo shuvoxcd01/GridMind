@@ -30,7 +30,7 @@ class DeepQLearning(BaseFunctionApproximationBasedLearingAlgorithm):
         epsilon_max: float = 1.0,
         feature_constructor: Optional[Callable] = None,
         summary_dir=None,
-        write_summary=True,
+        write_summary=False,
         replay_buffer_capacity: Optional[int] = None,
         target_network_update_frequency: int = 1000,
     ):

@@ -27,7 +27,7 @@ class OneStepPPO(BaseLearningAlgorithm):
         minibatch_size: int = 64,
         clip_epsilon: float = 0.2,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "ProximalPolicyOptimization_with_One_Step_TD-Error",

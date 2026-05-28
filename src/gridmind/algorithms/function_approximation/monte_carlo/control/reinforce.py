@@ -24,7 +24,7 @@ class Reinforce(BaseLearningAlgorithm):
         feature_constructor=None,
         grad_clip_value: float = 1.0,
         summary_dir: Optional[str] = None,
-        write_summary: bool = True,
+        write_summary: bool = False,
     ):
         super().__init__(
             "Reinforce", env, summary_dir=summary_dir, write_summary=write_summary
